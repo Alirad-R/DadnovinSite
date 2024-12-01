@@ -36,12 +36,12 @@ const sendMessageToAI = async (userInputText) => {
       body: JSON.stringify({ message: userInputText }),
     });
 
+    const textResponse = await response.text();
+    console.log("Raw Response:", textResponse);
+
     if (!response.ok) {
-      const errorData = await response.json();
       createMessageElement(
-        `Error: ${response.status} - ${
-          errorData.error || "Something went wrong"
-        }`,
+        `Error: ${response.status} - ${textResponse}`,
         false
       );
       return;
