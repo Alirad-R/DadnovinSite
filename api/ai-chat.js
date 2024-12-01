@@ -1,73 +1,39 @@
-const chatContainer = document.getElementById("chat-container");
-const userInput = document.getElementById("user-input");
-const sendButton = document.getElementById("send-button");
+const { Configuration, OpenAIApi } = require("openai");
 
-// Helper function to create and display a message
-const createMessageElement = (text, isUser) => {
-  const message = document.createElement("div");
-  message.className = isUser ? "user-message" : "ai-message";
-  message.textContent = text;
-  chatContainer.appendChild(message);
-  chatContainer.scrollTop = chatContainer.scrollHeight; // Auto-scroll to the bottom
-};
+// Configuring OpenAI with API key from environment variables
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY, // Never hard-code sensitive keys
+});
 
-// Cooldown mechanism to prevent spamming requests
-let isWaiting = false;
+const openai = new OpenAIApi(configuration);
 
-// Function to send the user's message to the serverless function
-const sendMessageToAI = async (userInputText) => {
-  if (isWaiting) {
-    createMessageElement("Please wait before sending another message.", false);
-    return;
+// Exporting the serverless function handler
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  isWaiting = true;
-  setTimeout(() => (isWaiting = false), 3000); // 3-second cooldown
+  const { message } = req.body; // Extracting the message from the request body
 
-  createMessageElement(userInputText, true); // Show the user's message
+  if (!message) {
+    return res.status(400).json({ error: "Message is required" });
+  }
 
   try {
-    // Call the Vercel serverless function
-    const response = await fetch("/api/ai-chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: userInputText }),
+    // Sending the message to OpenAI's API
+    const completion = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: message }],
+      max_tokens: 300,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      createMessageElement(
-        `Error: ${response.status} - ${
-          errorData.error || "Something went wrong"
-        }`,
-        false
-      );
-      return;
-    }
+    // Extracting OpenAI's reply
+    const reply = completion.data.choices[0].message.content;
 
-    const data = await response.json();
-    const aiResponse = data.reply.trim();
-    createMessageElement(aiResponse, false); // Show the AI's response
+    // Sending the reply back to the frontend
+    res.status(200).json({ reply });
   } catch (error) {
-    createMessageElement(`Error: ${error.message}`, false);
     console.error(error);
+    res.status(500).json({ error: "Failed to fetch response from OpenAI API" });
   }
-};
-
-// Event listener for the "Send" button
-sendButton.addEventListener("click", () => {
-  const userInputText = userInput.value.trim();
-  if (userInputText) {
-    sendMessageToAI(userInputText);
-    userInput.value = ""; // Clear the input field
-  }
-});
-
-// Allow "Enter" key to send a message
-userInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    sendButton.click();
-  }
-});
+}
