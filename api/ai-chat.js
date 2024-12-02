@@ -22,7 +22,14 @@ export default async function handler(req, res) {
     // Make the OpenAI API request
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-3.5-turbo", // You can switch models if needed
-      messages: [{ role: "user", content: message }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an AI assistant created for Ph.D. students specializing in AI and Law. Answer all questions in Persian unless instructed otherwise.",
+        },
+        { role: "user", content: message },
+      ],
       max_tokens: 150,
     });
 
