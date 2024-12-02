@@ -2,26 +2,26 @@ import { OpenAI } from "openai";
 
 // Initialize OpenAI with your API key from environment variables
 const openai = new OpenAI({
-  apiKey: process.env.API_KEY,
+  apiKey: process.env.API_KEY, // Make sure this is set correctly in your environment
 });
 
 export default async function handler(req, res) {
-  // Only allow POST requests
+  // Ensure it's a POST request
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   const { message } = req.body;
 
-  // Check if the message exists in the request body
+  // Check if the message is provided in the request body
   if (!message) {
     return res.status(400).json({ error: "Message is required" });
   }
 
   try {
-    // Get AI response from OpenAI API
+    // Make the OpenAI API request
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Or another model of your choice
+      model: "gpt-3.5-turbo", // You can switch models if needed
       messages: [{ role: "user", content: message }],
       max_tokens: 150,
     });
@@ -32,6 +32,6 @@ export default async function handler(req, res) {
       .json({ reply: aiResponse.choices[0].message.content.trim() });
   } catch (error) {
     console.error("Error fetching AI response:", error);
-    return res.status(500).json({ error: "Error with OpenAI API" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }

@@ -27,7 +27,7 @@ const sendMessageToAI = async (userInputText) => {
   createMessageElement(userInputText, true); // Show the user's message
 
   try {
-    // Call the serverless function hosted on Vercel
+    // Call the Vercel serverless function
     const response = await fetch("/api/ai-chat", {
       method: "POST",
       headers: {
@@ -36,18 +36,18 @@ const sendMessageToAI = async (userInputText) => {
       body: JSON.stringify({ message: userInputText }),
     });
 
-    const textResponse = await response.text();
-    console.log("Raw Response:", textResponse);
-
     if (!response.ok) {
+      const errorData = await response.json(); // Make sure this is only done once
       createMessageElement(
-        `Error: ${response.status} - ${textResponse}`,
+        `Error: ${response.status} - ${
+          errorData.error || "Something went wrong"
+        }`,
         false
       );
       return;
     }
 
-    const data = await response.json();
+    const data = await response.json(); // Only parse the response once
     const aiResponse = data.reply.trim();
     createMessageElement(aiResponse, false); // Show the AI's response
   } catch (error) {
