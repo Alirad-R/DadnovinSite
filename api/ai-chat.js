@@ -1,39 +1,32 @@
-const { Configuration, OpenAIApi } = require("openai");
+import { OpenAI } from "openai";
 
-// Configuring OpenAI with API key from environment variables
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // Never hard-code sensitive keys
+// Initialize OpenAI with your API key
+const openai = new OpenAI({
+  apiKey: process.env.API_KEY, // Use the API key from environment variables
 });
 
-const openai = new OpenAIApi(configuration);
-
-// Exporting the serverless function handler
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+  if (req.method === "POST") {
+    const { message } = req.body;
 
-  const { message } = req.body; // Extracting the message from the request body
+    try {
+      // Call OpenAI API to get the AI's response
+      const aiResponse = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo", // Or another model you prefer
+        messages: [{ role: "user", content: message }],
+        max_tokens: 150,
+      });
 
-  if (!message) {
-    return res.status(400).json({ error: "Message is required" });
-  }
-
-  try {
-    // Sending the message to OpenAI's API
-    const completion = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: message }],
-      max_tokens: 300,
-    });
-
-    // Extracting OpenAI's reply
-    const reply = completion.data.choices[0].message.content;
-
-    // Sending the reply back to the frontend
-    res.status(200).json({ reply });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch response from OpenAI API" });
+      // Send the response back to the client
+      res
+        .status(200)
+        .json({ reply: aiResponse.choices[0].message.content.trim() });
+    } catch (error) {
+      console.error("Error fetching AI response:", error);
+      res.status(500).json({ error: "Error with OpenAI API" });
+    }
+  } else {
+    // Only allow POST requests
+    res.status(405).json({ error: "Method Not Allowed" });
   }
 }
