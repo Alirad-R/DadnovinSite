@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نوآوری ها</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="navbar-left">
+            <a href="index.html" class="logo">دانشکده حقوق و هوش مصنوعی</a>
+        </div>
+        <div class="navbar-right">
+            <a href="index.html">برگشت به صفحه اصلی</a>
+        </div>
+    </header>
+    <section class="innovation-container">
+        <h1 style="text-align: center;">نوآوری‌های دانشگاه</h1>
+        <ul id="technologies-list" class="technology-list right-aligned-list">
+            <!-- Technologies will be dynamically added here -->
+        </ul>
+    </section>
+    <footer class="footer">
+        <p>Morteza Rajaghomi LLC</p>
+    </footer>
+    <script>
+        // Example: List of technologies created by the university
+        const technologies = [
+            "اپلیکیشن وکیل یاب",
+            "لباس های هوشمند ترافیکی"
+        ];
+
+        // Dynamically add the technologies to the page
+        const technologiesList = document.getElementById("technologies-list");
+        technologies.forEach((tech) => {
+            const listItem = document.createElement("li");
+            listItem.textContent = tech;
+            technologiesList.appendChild(listItem);
+        });
+    </script>
+</body>
+</html>
