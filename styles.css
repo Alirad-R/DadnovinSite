@@ -36,6 +36,9 @@ body {
 }
 
 /* Hero Section */
+.persian {
+    text-align: right;
+}
 .hero {
     position: relative;
     background: url('assets/background.webp') no-repeat center center/cover;
