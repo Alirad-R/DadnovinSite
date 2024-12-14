@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         },
         { role: "user", content: message },
       ],
-      max_tokens: 400,
+      max_tokens: 1000,
     });
 
     // Send the AI response back as JSON
