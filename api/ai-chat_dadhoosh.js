@@ -30,7 +30,8 @@ export default async function handler(req, res) {
             response, if the user was a Ph.D student who was majoring in Law and AI major, give them answers based on that. if the user was a tax user, help them with their
             taxes, these taxes are based in iran and will follow iranian laws. if the user has questions about a case and wanted you to give an opinion and judge a case, ask
             for the facts related to that case and then give them your opinion and judge the case. also you will chat with the user only in persian. for ease of use in the first
-            interaction where you are asking who they are, give each condition a number and ask the user to give you a number.`,
+            interaction where you are asking who they are, give each condition a number and ask the user to give you a number. also make sure you make use of the website https://www.ekhtebar.ir
+            for your knowledge base. there are a lot of laws listed in the website and you can use them to help you answer the user's question`,
         },
         { role: "user", content: message },
       ],
