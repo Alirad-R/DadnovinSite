@@ -14,10 +14,21 @@ const createMessageElement = (text, isUser) => {
 // Cooldown mechanism to prevent spamming requests
 let isWaiting = false;
 
+// Track the current system prompt
+let systemPrompt = "";
+
 // Function to send the user's message to the serverless function
 const sendMessageToAI = async (userInputText) => {
   if (isWaiting) {
     createMessageElement("Please wait before sending another message.", false);
+    return;
+  }
+
+  if (!systemPrompt) {
+    createMessageElement(
+      "Please select a topic from the navigation bar.",
+      false
+    );
     return;
   }
 
@@ -27,17 +38,17 @@ const sendMessageToAI = async (userInputText) => {
   createMessageElement(userInputText, true); // Show the user's message
 
   try {
-    // Call the Vercel serverless function
+    // Call the serverless function
     const response = await fetch("/api/ai-chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message: userInputText }),
+      body: JSON.stringify({ message: userInputText, systemPrompt }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json(); // Make sure this is only done once
+      const errorData = await response.json(); // Parse error response
       createMessageElement(
         `Error: ${response.status} - ${
           errorData.error || "Something went wrong"
@@ -47,7 +58,7 @@ const sendMessageToAI = async (userInputText) => {
       return;
     }
 
-    const data = await response.json(); // Only parse the response once
+    const data = await response.json(); // Parse the response once
     const aiResponse = data.reply.trim();
     createMessageElement(aiResponse, false); // Show the AI's response
   } catch (error) {
@@ -70,4 +81,14 @@ userInput.addEventListener("keypress", (e) => {
   if (e.key === "Enter") {
     sendButton.click();
   }
+});
+
+// Handle system prompt updates based on navbar clicks
+document.querySelectorAll(".nav-item").forEach((item) => {
+  item.addEventListener("click", (e) => {
+    e.preventDefault(); // Prevent default link behavior
+    systemPrompt = item.getAttribute("data-prompt");
+    chatContainer.innerHTML = ""; // Clear chat history
+    alert(`System Prompt Set: ${systemPrompt}`);
+  });
 });
