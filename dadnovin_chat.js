@@ -28,7 +28,7 @@ const sendMessageToAI = async (userInputText) => {
 
   try {
     // Call the Vercel serverless function
-    const response = await fetch("/api/ai-chat_dadhoosh", {
+    const response = await fetch("/api/ai-chat_dadnovin", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
