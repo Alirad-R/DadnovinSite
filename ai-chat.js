@@ -18,9 +18,9 @@ let isWaiting = false;
 let systemPrompt = localStorage.getItem("systemPrompt") || "";
 
 // Display a notification if no system prompt is selected
-if (!systemPrompt) {
-  createMessageElement("Please select a topic from the navigation bar.", false);
-}
+// if (!systemPrompt) {
+//   createMessageElement("Please select a topic from the navigation bar.", false);
+// }
 
 // Function to send the user's message to the serverless function
 const sendMessageToAI = async (userInputText) => {
@@ -101,10 +101,29 @@ document.querySelectorAll(".nav-item").forEach((item) => {
     chatContainer.innerHTML = "";
     createMessageElement(`System Prompt Set: ${systemPrompt}`, false);
 
-    // Redirect to the desired AI mode page
+    // Redirect to the desired AI mode page after a short delay
     const targetPage = item.getAttribute("href");
     if (targetPage) {
-      window.location.href = targetPage;
+      setTimeout(() => {
+        window.location.href = targetPage;
+      }, 500); // Delay for 500ms to allow message display
     }
   });
 });
+
+// Retrieve system prompt from local storage when the page loads
+window.onload = () => {
+  const storedPrompt = localStorage.getItem("systemPrompt");
+  if (storedPrompt) {
+    // Use storedPrompt as needed, e.g., display it or initialize chat
+    console.log("Retrieved System Prompt:", storedPrompt);
+
+    // If you have a function to initialize chat, you can call it here
+    initializeChat(storedPrompt);
+  }
+};
+
+// Example function to initialize chat with a given prompt
+const initializeChat = (prompt) => {
+  // Your logic to set up chat with this prompt
+};
