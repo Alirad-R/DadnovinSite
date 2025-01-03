@@ -14,8 +14,13 @@ const createMessageElement = (text, isUser) => {
 // Cooldown mechanism to prevent spamming requests
 let isWaiting = false;
 
-// Track the current system prompt
-let systemPrompt = "";
+// Load system prompt from local storage
+let systemPrompt = localStorage.getItem("systemPrompt") || "";
+
+// Display a notification if no system prompt is selected
+if (!systemPrompt) {
+  createMessageElement("Please select a topic from the navigation bar.", false);
+}
 
 // Function to send the user's message to the serverless function
 const sendMessageToAI = async (userInputText) => {
@@ -48,7 +53,7 @@ const sendMessageToAI = async (userInputText) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json(); // Parse error response
+      const errorData = await response.json();
       createMessageElement(
         `Error: ${response.status} - ${
           errorData.error || "Something went wrong"
@@ -58,7 +63,7 @@ const sendMessageToAI = async (userInputText) => {
       return;
     }
 
-    const data = await response.json(); // Parse the response once
+    const data = await response.json();
     const aiResponse = data.reply.trim();
     createMessageElement(aiResponse, false); // Show the AI's response
   } catch (error) {
@@ -87,8 +92,19 @@ userInput.addEventListener("keypress", (e) => {
 document.querySelectorAll(".nav-item").forEach((item) => {
   item.addEventListener("click", (e) => {
     e.preventDefault(); // Prevent default link behavior
+
+    // Set the new system prompt and save it in local storage
     systemPrompt = item.getAttribute("data-prompt");
-    chatContainer.innerHTML = ""; // Clear chat history
-    alert(`System Prompt Set: ${systemPrompt}`);
+    localStorage.setItem("systemPrompt", systemPrompt);
+
+    // Clear the chat container and notify the user
+    chatContainer.innerHTML = "";
+    createMessageElement(`System Prompt Set: ${systemPrompt}`, false);
+
+    // Redirect to the desired AI mode page
+    const targetPage = item.getAttribute("href");
+    if (targetPage) {
+      window.location.href = targetPage;
+    }
   });
 });
