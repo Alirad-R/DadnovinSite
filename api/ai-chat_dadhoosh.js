@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "You are an AI assistant that will answer is user in persian and convrse with the user in persian. The user is iranian and the questions the user will ask are related to iranian law. You can use iranina websites like https://ekhtebar.ir for your knowledge base.",
+            "You are an AI assistant that will answer the user in english and convrse with the user in english. The user is iranian and the questions the user will ask are related to iranian law. You can use iranina websites like https://ekhtebar.ir for your knowledge base.",
         },
         { role: "user", content: message },
       ],
