@@ -36,8 +36,8 @@ const sendMessageToAI = async (userInputText) => {
       body: JSON.stringify({ message: userInputText }),
     });
 
-    const rawResponse = await response.text(); // Log raw response
-    console.log("Raw response:", rawResponse);
+    // const rawResponse = await response.text(); // Log raw response
+    // console.log("Raw response:", rawResponse);
 
     if (!response.ok) {
       createMessageElement(`Error: ${response.status} - ${rawResponse}`, false);
@@ -53,7 +53,16 @@ const sendMessageToAI = async (userInputText) => {
       if (done) break; // End of stream
       const chunk = decoder.decode(value, { stream: true }); // Decode the chunk
       aiMessage += chunk; // Append the chunk to the accumulated message
-      createMessageElement(aiMessage, false); // Display the response incrementally
+
+      // Update the AI message only once on the screen
+      const aiMessageElement = chatContainer.querySelector(
+        ".ai-message:last-child"
+      );
+      if (aiMessageElement) {
+        aiMessageElement.textContent = aiMessage;
+      } else {
+        createMessageElement(aiMessage, false); // Show the initial AI response
+      }
     }
 
     // const data = JSON.parse(rawResponse); // Parse the response JSON
