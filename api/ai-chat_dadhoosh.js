@@ -26,19 +26,29 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "You are an AI assistant that will answer the user in english and convrse with the user in english. The user is iranian and the questions the user will ask are related to iranian law. You can use iranina websites like https://ekhtebar.ir for your knowledge base.",
+            "You are an AI assistant that will answer the user in persian and convrse with the user in persian. The user is iranian and the questions the user will ask are related to iranian law. You can use iranina websites like https://ekhtebar.ir for your knowledge base.",
         },
         { role: "user", content: message },
       ],
       max_tokens: 1000,
     });
 
-    console.log("AI response:", aiResponse);
+    const reply = aiResponse.choices[0].message?.content
+      ?.trim()
+      .replace(/[\u200B-\u200D\uFEFF]/g, "");
+
+    console.log("AI Response:", aiResponse);
+    console.log("Reply to Client:", reply);
+
+    if (!reply) {
+      return res.status(500).json({ error: "No valid response from AI" });
+    }
 
     // Send the AI response back as JSON
     return res
       .status(200)
-      .json({ reply: aiResponse.choices[0].message.content.trim() });
+      .setHeader("Content-Type", "application/json; charset=utf-8")
+      .json({ reply: aiResponse.choices[0].message?.content?.trim() });
   } catch (error) {
     console.error("Error fetching AI response:", error);
     return res.status(500).json({ error: "Internal Server Error" });

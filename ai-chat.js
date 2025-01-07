@@ -36,18 +36,15 @@ const sendMessageToAI = async (userInputText) => {
       body: JSON.stringify({ message: userInputText }),
     });
 
+    const rawResponse = await response.text(); // Log raw response
+    console.log("Raw response:", rawResponse);
+
     if (!response.ok) {
-      const errorData = await response.json(); // Make sure this is only done once
-      createMessageElement(
-        `Error: ${response.status} - ${
-          errorData.error || "Something went wrong"
-        }`,
-        false
-      );
+      createMessageElement(`Error: ${response.status} - ${rawResponse}`, false);
       return;
     }
 
-    const data = await response.json(); // Only parse the response once
+    const data = JSON.parse(rawResponse); // Parse the response JSON
     const aiResponse = data.reply.trim();
     createMessageElement(aiResponse, false); // Show the AI's response
   } catch (error) {
