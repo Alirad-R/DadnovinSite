@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   try {
     // Make the OpenAI API request
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4-0314", // You can switch models if needed
+      model: "gpt-4", // You can switch models if needed
       messages: [
         {
           role: "system",
