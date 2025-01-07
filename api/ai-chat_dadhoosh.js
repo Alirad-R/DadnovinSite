@@ -33,6 +33,8 @@ export default async function handler(req, res) {
       max_tokens: 1000,
     });
 
+    console.log("AI response:", aiResponse);
+
     // Send the AI response back as JSON
     return res
       .status(200)
