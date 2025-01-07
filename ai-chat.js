@@ -51,8 +51,9 @@ const sendMessageToAI = async (userInputText) => {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break; // End of stream
-      aiMessage += decoder.decode(value, { stream: true }); // Decode the chunk
-      createMessageElement(aiMessage, false); // Display the ongoing response
+      const chunk = decoder.decode(value, { stream: true }); // Decode the chunk
+      aiMessage += chunk; // Append the chunk to the accumulated message
+      createMessageElement(aiMessage, false); // Display the response incrementally
     }
 
     // const data = JSON.parse(rawResponse); // Parse the response JSON
