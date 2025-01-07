@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         },
         { role: "user", content: message },
       ],
-      max_tokens: 1000,
+      max_tokens: 800,
     });
 
     const reply = aiResponse.choices[0].message?.content
