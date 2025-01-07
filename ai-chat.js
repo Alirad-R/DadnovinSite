@@ -51,17 +51,26 @@ const sendMessageToAI = async (userInputText) => {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break; // End of stream
-      const chunk = decoder.decode(value, { stream: true }); // Decode the chunk
-      aiMessage += chunk; // Append the chunk to the accumulated message
 
-      // Update the AI message only once on the screen
-      const aiMessageElement = chatContainer.querySelector(
-        ".ai-message:last-child"
-      );
-      if (aiMessageElement) {
-        aiMessageElement.textContent = aiMessage;
-      } else {
-        createMessageElement(aiMessage, false); // Show the initial AI response
+      const chunk = decoder.decode(value, { stream: true }); // Decode the chunk
+
+      // Process the streamed "data: " format
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const content = line.replace("data: ", "").trim();
+          aiMessage += content;
+
+          // Update the AI message dynamically
+          const aiMessageElement = chatContainer.querySelector(
+            ".ai-message:last-child"
+          );
+          if (aiMessageElement) {
+            aiMessageElement.textContent = aiMessage;
+          } else {
+            createMessageElement(aiMessage, false); // Show the initial AI response
+          }
+        }
       }
     }
 

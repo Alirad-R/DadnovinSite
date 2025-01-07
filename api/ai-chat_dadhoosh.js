@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || "";
       if (content) {
-        res.write(`data: ${content}\n\n`); // Send data as an event
+        res.write(`data: ${chunk}\n\n`); // Send data as an event
       }
     }
 
