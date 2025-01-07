@@ -44,9 +44,20 @@ const sendMessageToAI = async (userInputText) => {
       return;
     }
 
-    const data = JSON.parse(rawResponse); // Parse the response JSON
-    const aiResponse = data.reply.trim();
-    createMessageElement(aiResponse, false); // Show the AI's response
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let aiMessage = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break; // End of stream
+      aiMessage += decoder.decode(value, { stream: true }); // Decode the chunk
+      createMessageElement(aiMessage, false); // Display the ongoing response
+    }
+
+    // const data = JSON.parse(rawResponse); // Parse the response JSON
+    // const aiResponse = data.reply.trim();
+    // createMessageElement(aiResponse, false); // Show the AI's response
   } catch (error) {
     createMessageElement(`Error: ${error.message}`, false);
     console.error(error);

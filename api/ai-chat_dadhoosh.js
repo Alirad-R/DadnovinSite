@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     // Make the OpenAI API request
-    const aiResponse = await openai.chat.completions.create({
+    const stream = await openai.chat.completions.create({
       model: "gpt-4", // You can switch models if needed
       messages: [
         {
@@ -31,24 +31,37 @@ export default async function handler(req, res) {
         { role: "user", content: message },
       ],
       max_tokens: 800,
+      stream: true,
     });
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || "";
+      if (content) {
+        res.write(`data: ${content}\n\n`); // Send data as an event
+      }
+    }
 
     const reply = aiResponse.choices[0].message?.content
       ?.trim()
       .replace(/[\u200B-\u200D\uFEFF]/g, "");
 
-    console.log("AI Response:", aiResponse);
-    console.log("Reply to Client:", reply);
+    // console.log("AI Response:", aiResponse);
+    // console.log("Reply to Client:", reply);
 
-    if (!reply) {
-      return res.status(500).json({ error: "No valid response from AI" });
-    }
+    // if (!reply) {
+    //   return res.status(500).json({ error: "No valid response from AI" });
+    // }
 
     // Send the AI response back as JSON
-    return res
-      .status(200)
-      .setHeader("Content-Type", "application/json; charset=utf-8")
-      .json({ reply: aiResponse.choices[0].message?.content?.trim() });
+    // return res
+    //   .status(200)
+    //   .setHeader("Content-Type", "application/json; charset=utf-8")
+    //   .json({ reply: aiResponse.choices[0].message?.content?.trim() });
+    res.end();
   } catch (error) {
     console.error("Error fetching AI response:", error);
     return res.status(500).json({ error: "Internal Server Error" });
