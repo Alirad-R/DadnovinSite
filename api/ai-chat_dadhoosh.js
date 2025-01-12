@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
