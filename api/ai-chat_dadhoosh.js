@@ -9,22 +9,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { message } = req.body;
-  if (!message) {
-    return res.status(400).json({ error: "Message is required" });
+  const { conversationHistory } = req.body;
+  if (!conversationHistory) {
+    return res.status(400).json({ error: "Conversation history is required" });
   }
 
   try {
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an AI assistant that will answer the user in persian and convrse with the user in persian. The user is iranian and the questions the user will ask are related to iranian law. You can use iranina websites like https://ekhtebar.ir for your knowledge base.",
-        },
-        { role: "user", content: message },
-      ],
+      model: "gpt-4",
+      messages: conversationHistory,
       max_tokens: 800,
       stream: true,
     });
