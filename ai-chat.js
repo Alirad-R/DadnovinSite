@@ -20,7 +20,7 @@ const sendMessageToAI = async (userInputText) => {
   }
 
   isWaiting = true;
-  setTimeout(() => (isWaiting = false), 3000);
+  setTimeout(() => (isWaiting = false), 5000);
 
   createMessageElement(userInputText, true);
 
