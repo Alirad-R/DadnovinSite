@@ -19,48 +19,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Make the OpenAI API request
-    const stream = await openai.chat.completions.create({
+    // Make the OpenAI API request with streaming
+    const aiResponse = await openai.chat.completions.create({
       model: "gpt-4", // You can switch models if needed
       messages: [
         {
           role: "system",
           content:
-            "You are an AI assistant that will answer the user in persian and convrse with the user in persian. The user is iranian and the questions the user will ask are related to iranian law. You can use iranina websites like https://ekhtebar.ir for your knowledge base.",
+            "You are an AI assistant that will answer the user in persian and converse with the user in persian. The user is iranian and the questions the user will ask are related to iranian law. You can use iranian websites like https://ekhtebar.ir for your knowledge base.",
         },
         { role: "user", content: message },
       ],
       max_tokens: 800,
-      stream: true,
+      stream: true, // Enable streaming
     });
 
+    // Set headers for streaming response
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
-    for await (const chunk of stream) {
+    // Stream the response back to the client
+    for await (const chunk of aiResponse) {
       const content = chunk.choices[0]?.delta?.content || "";
-      if (content) {
-        res.write(`data: ${chunk}\n\n`); // Send data as an event
-      }
+      res.write(`data: ${JSON.stringify({ reply: content })}\n\n`);
     }
 
-    const reply = aiResponse.choices[0].message?.content
-      ?.trim()
-      .replace(/[\u200B-\u200D\uFEFF]/g, "");
-
-    // console.log("AI Response:", aiResponse);
-    // console.log("Reply to Client:", reply);
-
-    // if (!reply) {
-    //   return res.status(500).json({ error: "No valid response from AI" });
-    // }
-
-    // Send the AI response back as JSON
-    // return res
-    //   .status(200)
-    //   .setHeader("Content-Type", "application/json; charset=utf-8")
-    //   .json({ reply: aiResponse.choices[0].message?.content?.trim() });
     res.end();
   } catch (error) {
     console.error("Error fetching AI response:", error);

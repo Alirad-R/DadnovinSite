@@ -36,47 +36,32 @@ const sendMessageToAI = async (userInputText) => {
       body: JSON.stringify({ message: userInputText }),
     });
 
-    // const rawResponse = await response.text(); // Log raw response
-    // console.log("Raw response:", rawResponse);
-
     if (!response.ok) {
-      createMessageElement(`Error: ${response.status} - ${rawResponse}`, false);
+      const errorText = await response.text();
+      createMessageElement(`Error: ${response.status} - ${errorText}`, false);
       return;
     }
 
+    // Handle streaming response
     const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
+    const decoder = new TextDecoder();
     let aiMessage = "";
 
     while (true) {
-      const { value, done } = await reader.read();
-      if (done) break; // End of stream
+      const { done, value } = await reader.read();
+      if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true }); // Decode the chunk
-
-      // Process the streamed "data: " format
+      const chunk = decoder.decode(value, { stream: true });
       const lines = chunk.split("\n");
+
       for (const line of lines) {
         if (line.startsWith("data: ")) {
-          const content = line.replace("data: ", "").trim();
-          aiMessage += content;
-
-          // Update the AI message dynamically
-          const aiMessageElement = chatContainer.querySelector(
-            ".ai-message:last-child"
-          );
-          if (aiMessageElement) {
-            aiMessageElement.textContent = aiMessage;
-          } else {
-            createMessageElement(aiMessage, false); // Show the initial AI response
-          }
+          const data = JSON.parse(line.slice(6));
+          aiMessage += data.reply;
+          createMessageElement(aiMessage, false); // Update the AI's response in real-time
         }
       }
     }
-
-    // const data = JSON.parse(rawResponse); // Parse the response JSON
-    // const aiResponse = data.reply.trim();
-    // createMessageElement(aiResponse, false); // Show the AI's response
   } catch (error) {
     createMessageElement(`Error: ${error.message}`, false);
     console.error(error);
