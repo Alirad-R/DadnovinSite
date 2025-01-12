@@ -1,3 +1,4 @@
+// ai-chat_dadhoosh.js
 import { OpenAI } from "openai";
 
 const openai = new OpenAI({
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
 
   try {
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: conversationHistory,
       max_tokens: 800,
       stream: true,

@@ -1,8 +1,8 @@
+// ai-chat.js
 const chatContainer = document.getElementById("chat-container");
 const userInput = document.getElementById("user-input");
 const sendButton = document.getElementById("send-button");
 
-// Initialize conversation history with the system prompt
 let conversationHistory = [
   {
     role: "system",
@@ -11,19 +11,18 @@ let conversationHistory = [
   },
 ];
 
-// Helper function to create and display a message
+let isWaiting = false;
+let assistantMessageElement = null;
+
 const createMessageElement = (message, isUser) => {
   const msg = document.createElement("div");
   msg.className = isUser ? "user-message" : "ai-message";
   msg.textContent = message.content;
   chatContainer.appendChild(msg);
-  chatContainer.scrollTop = chatContainer.scrollHeight; // Auto-scroll to the bottom
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+  return msg;
 };
 
-// Cooldown mechanism to prevent spamming requests
-let isWaiting = false;
-
-// Function to send the user's message to the serverless function
 const sendMessageToAI = async (userInputText) => {
   if (isWaiting) {
     createMessageElement(
@@ -34,14 +33,13 @@ const sendMessageToAI = async (userInputText) => {
   }
 
   isWaiting = true;
-  setTimeout(() => (isWaiting = false), 3000); // 3-second cooldown
+  setTimeout(() => (isWaiting = false), 3000);
 
   const userMessage = { role: "user", content: userInputText };
   conversationHistory.push(userMessage);
-  createMessageElement(userMessage, true); // Show the user's message
+  createMessageElement(userMessage, true);
 
   try {
-    // Call the Vercel serverless function
     const response = await fetch("/api/ai-chat_dadhoosh", {
       method: "POST",
       headers: {
@@ -62,10 +60,13 @@ const sendMessageToAI = async (userInputText) => {
       return;
     }
 
-    // Handle streaming response
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let currentAssistantResponse = "";
+    assistantMessageElement = createMessageElement(
+      { role: "assistant", content: "" },
+      false
+    );
 
     while (true) {
       const { done, value } = await reader.read();
@@ -78,35 +79,34 @@ const sendMessageToAI = async (userInputText) => {
         if (line.startsWith("data: ")) {
           const data = JSON.parse(line.slice(6));
           currentAssistantResponse += data.reply;
+          if (assistantMessageElement) {
+            assistantMessageElement.textContent = currentAssistantResponse;
+          }
         }
       }
     }
 
-    const assistantMessage = {
-      role: "assistant",
-      content: currentAssistantResponse,
-    };
-    conversationHistory.push(assistantMessage);
-    createMessageElement(assistantMessage, false); // Show the AI's response
+    conversationHistory[conversationHistory.length - 1].content =
+      currentAssistantResponse;
   } catch (error) {
     createMessageElement(
       { role: "assistant", content: `Error: ${error.message}` },
       false
     );
     console.error(error);
+  } finally {
+    isWaiting = false;
   }
 };
 
-// Event listener for the "Send" button
 sendButton.addEventListener("click", () => {
   const userInputText = userInput.value.trim();
   if (userInputText) {
     sendMessageToAI(userInputText);
-    userInput.value = ""; // Clear the input field
+    userInput.value = "";
   }
 });
 
-// Allow "Enter" key to send a message
 userInput.addEventListener("keypress", (e) => {
   if (e.key === "Enter") {
     sendButton.click();
