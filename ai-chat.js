@@ -33,7 +33,7 @@ const sendMessageToAI = async (userInputText) => {
   }
 
   isWaiting = true;
-  setTimeout(() => (isWaiting = false), 3000);
+  setTimeout(() => (isWaiting = false), 10000);
 
   const userMessage = { role: "user", content: userInputText };
   conversationHistory.push(userMessage);
@@ -47,17 +47,23 @@ const sendMessageToAI = async (userInputText) => {
       },
       body: JSON.stringify({ conversationHistory }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (response.status === 429) {
       createMessageElement(
         {
           role: "assistant",
-          content: `Error: ${response.status} - ${errorText}`,
+          content: "Please wait before sending another message.",
         },
         false
       );
-      return;
+    }
+    if (!response.ok) {
+      if (response.status === 429 && retryCount < 3) {
+        const retryAfter = parseInt(response.headers.get("Retry-After")) || 5; // Default to 5 seconds
+        await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
+        return sendMessageToAI(userInputText, retryCount + 1); // Retry
+      } else {
+        throw new Error(`Error: ${response.status} - ${await response.text()}`);
+      }
     }
 
     const reader = response.body.getReader();
