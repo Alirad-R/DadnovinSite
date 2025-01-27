@@ -47,16 +47,16 @@ const sendMessageToAI = async (userInputText) => {
       },
       body: JSON.stringify({ conversationHistory }),
     });
-    if (response.status === 429) {
-      createMessageElement(
-        {
-          role: "assistant",
-          content: "Please wait before sending another message.",
-        },
-        false
-      );
-    }
     if (!response.ok) {
+      if (response.status === 429) {
+        createMessageElement(
+          {
+            role: "assistant",
+            content: "Please wait before sending another message.",
+          },
+          false
+        );
+      }
       if (response.status === 429 && retryCount < 3) {
         const retryAfter = parseInt(response.headers.get("Retry-After")) || 5; // Default to 5 seconds
         await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
