@@ -96,7 +96,11 @@ const sendMessageToAI = async (userInputText) => {
       currentAssistantResponse;
   } catch (error) {
     createMessageElement(
-      { role: "assistant", content: `Error: ${error.message}` },
+      // { role: "assistant", content: `Error: ${error.message}` },
+      {
+        role: "assistant",
+        content: `در حال حاضر به خاطر درخواست های زیاد، لطفاً صبر کنید و بعداً دوباره امتحان کنید.`,
+      },
       false
     );
     console.error(error);
