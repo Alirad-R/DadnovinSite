@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: dadnovin-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: YMCMBpass
+      MYSQL_DATABASE: dadnovin_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  nextjs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dadnovin-nextjs
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: YMCMBpass
+      DB_NAME: dadnovin_db
+    depends_on:
+      - mysql
+
+volumes:
+  mysql_data:
