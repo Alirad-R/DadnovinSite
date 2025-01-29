@@ -5,12 +5,24 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-background: #ffffff;
+  --card-border: #e5e7eb;
+  --input-background: #ffffff;
+  --input-border: #d1d5db;
+  --input-text: #171717;
+  --label-text: #374151;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --card-background: #171717;
+    --card-border: #374151;
+    --input-background: #1f2937;
+    --input-border: #374151;
+    --input-text: #ededed;
+    --label-text: #9ca3af;
   }
 }
 
@@ -18,4 +30,30 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Form styles */
+.auth-card {
+  background-color: var(--card-background);
+  border: 1px solid var(--card-border);
+}
+
+.auth-input {
+  background-color: var(--input-background);
+  border-color: var(--input-border);
+  color: var(--input-text);
+}
+
+.auth-input:focus {
+  border-color: #3b82f6;
+  outline: none;
+  ring-color: #3b82f6;
+}
+
+.auth-label {
+  color: var(--label-text);
+}
+
+.auth-error {
+  color: #ef4444;
 }
