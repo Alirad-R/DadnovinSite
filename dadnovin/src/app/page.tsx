@@ -2,36 +2,44 @@
 
 import AuthForms from "@/components/AuthForms";
 import { useAuth } from "@/context/AuthContext";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   const { user, logout } = useAuth();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      {user ? (
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-8">
-            Welcome, {user.firstName}!
-          </h1>
-          <div className="mb-8">
-            <p className="text-lg mb-2">Email: {user.email}</p>
-            <p className="text-lg">
-              Name: {user.firstName} {user.lastName}
-            </p>
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+
+      <main className="flex-grow">
+        <section className="relative h-[80vh] flex items-center justify-center">
+          <div className="absolute inset-0">
+            <div
+              className="absolute inset-0 bg-black/50"
+              style={{
+                backgroundImage: "url('/assets/background3.webp')",
+                backgroundPosition: "center",
+                backgroundSize: "cover",
+                backgroundRepeat: "no-repeat",
+              }}
+            />
           </div>
-          <button
-            onClick={logout}
-            className="bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
-        </div>
-      ) : (
-        <>
-          <h1 className="text-4xl font-bold mb-8">Welcome to Our App</h1>
-          <AuthForms />
-        </>
-      )}
-    </main>
+
+          <div className="relative text-center text-white p-5 z-10 space-y-8">
+            <h1 className="text-6xl mb-2">سامانه داد</h1>
+            {user ? (
+              <div className="text-8xl animate-bounce">👍</div>
+            ) : (
+              <p className="text-2xl font-light">
+                برای شروع لطفا وارد حساب کاربری خود شوید یا ثبت نام کنید
+              </p>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
   );
 }

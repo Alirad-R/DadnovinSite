@@ -57,3 +57,31 @@ body {
 .auth-error {
   color: #ef4444;
 }
+
+/* Chat specific styles */
+.ai-container {
+  min-height: calc(100vh - 64px); /* Adjust based on your navbar height */
+}
+
+#chat-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--input-border) transparent;
+}
+
+#chat-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+#chat-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#chat-container::-webkit-scrollbar-thumb {
+  background-color: var(--input-border);
+  border-radius: 4px;
+}
+
+.chat-input-container input:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: #3b82f6;
+}
