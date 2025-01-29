@@ -13,4 +13,8 @@ This project uses Docker.
    ```bash
    docker-compose up -d
    ```
-4. Access the application at [http://localhost:3000](http://localhost:3000)
+4. Do prisma migration from inside the docker:
+   ```bash
+   docker exec -it dadnovin-nextjs npx prisma migrate dev --name init
+   ```
+5. Access the application at [http://localhost:3000](http://localhost:3000)
