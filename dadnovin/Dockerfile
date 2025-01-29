@@ -8,17 +8,20 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
+# Copy the Prisma schema before generating the client
+COPY prisma ./prisma
+
+# Generate Prisma client
+RUN npx prisma generate
+
 # Copy the rest of the project files
 COPY . .
 
-# Set environment variables
-ENV NODE_ENV=production
-
-# Build the Next.js app
-RUN npm run build
+# Set environment variables for development
+ENV NODE_ENV=development
 
 # Expose port 3000
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+# Start Next.js in development mode
+CMD ["npm", "run", "dev"]

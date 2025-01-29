@@ -21,13 +21,22 @@ services:
     restart: always
     ports:
       - "3000:3000"
+      - "5555:5555"
     environment:
+      DATABASE_URL: "mysql://root:YMCMBpass@mysql:3306/dadnovin_db"
       DB_HOST: mysql
       DB_USER: root
       DB_PASSWORD: YMCMBpass
       DB_NAME: dadnovin_db
+      NEXTAUTH_SECRET: "supersecret"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - mysql
+    command: >
+      sh -c "npx prisma migrate deploy && npm run dev"
 
 volumes:
   mysql_data:
