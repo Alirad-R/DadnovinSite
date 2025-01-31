@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: conversationHistory,
-      max_tokens: 800,
+      max_tokens: 1500,
       stream: true,
     });
 
