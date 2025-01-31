@@ -1,31 +1,54 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Navbar from "@/components/Navbar";
+import { v4 as uuidv4 } from "uuid";
 
 export default function DadafarinAssistant() {
   const [messages, setMessages] = useState<
     Array<{ type: "user" | "ai"; content: string }>
   >([]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [conversationId] = useState<string>(uuidv4());
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
+    setIsLoading(true);
     // Add user message
     setMessages((prev) => [...prev, { type: "user", content: input }]);
 
-    // TODO: Add actual AI integration here
-    // For now, just echo back a response
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/assistant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: input,
+          conversationId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get response");
+      }
+
+      setMessages((prev) => [...prev, { type: "ai", content: data.response }]);
+    } catch (error) {
+      console.error("Error:", error);
       setMessages((prev) => [
         ...prev,
-        { type: "ai", content: "This is a sample AI response." },
+        { type: "ai", content: "An error occurred. Please try again." },
       ]);
-    }, 1000);
-
-    setInput("");
+    } finally {
+      setIsLoading(false);
+      setInput("");
+    }
   };
 
   return (
@@ -70,6 +93,7 @@ export default function DadafarinAssistant() {
             {message.content}
           </div>
         ))}
+        {isLoading && <div className="text-center p-2">Loading...</div>}
       </div>
 
       <div className="chat-input-container w-4/5 mx-auto flex justify-center mt-5">
@@ -86,10 +110,12 @@ export default function DadafarinAssistant() {
             }}
             placeholder="پیام خود را تایپ کنید"
             dir="rtl"
+            disabled={isLoading}
           />
           <button
             type="submit"
             className="px-5 py-3 bg-blue-600 text-white rounded-l-lg hover:bg-blue-700 transition-colors"
+            disabled={isLoading}
           >
             ارسال
           </button>

@@ -1,6 +1,13 @@
 # Use official Node.js image
 FROM node:18
 
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 
@@ -16,6 +23,9 @@ RUN npx prisma generate
 
 # Copy the rest of the project files
 COPY . .
+
+# Create data directory if it doesn't exist
+RUN mkdir -p data
 
 # Set environment variables for development
 ENV NODE_ENV=development
