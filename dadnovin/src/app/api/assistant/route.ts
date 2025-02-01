@@ -8,11 +8,17 @@ import * as hub from "langchain/hub";
 import { BufferMemory } from "langchain/memory";
 import { NextRequest, NextResponse } from "next/server";
 import { loadOrCreateVectorStore } from "../../../lib/vectorStoreManager";
+import prisma from "@/lib/prisma";
+import { HumanMessage, AIMessage } from "@langchain/core/messages";
+import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 
 // Registry to store conversation chains
-const conversationRegistry: Record<string, ConversationChain> = {};
+const conversationRegistry: Record<
+  string,
+  { chain: ConversationChain; createdAt: number }
+> = {};
 
-async function createNewConversationChain() {
+async function createNewConversationChain(existingHistory: any[] = []) {
   const llm = new ChatOpenAI({
     modelName: "deepseek-chat",
     openAIApiKey: process.env.DEEPSEEK_API_KEY,
@@ -41,15 +47,28 @@ async function createNewConversationChain() {
     ["human", "{context}\n\nQuestion: {question}"],
   ]);
 
+  // Initialize chat history with existing messages
+  const messageHistory = new ChatMessageHistory();
+  for (const msg of existingHistory) {
+    if (msg.type === "user") {
+      await messageHistory.addUserMessage(msg.content);
+    } else {
+      await messageHistory.addAIMessage(msg.content);
+    }
+  }
+
+  // Create memory with initialized history
   const memory = new BufferMemory({
     returnMessages: true,
     memoryKey: "history",
     inputKey: "question",
+    chatHistory: messageHistory,
   });
 
+  // Create chain with memory
   const chain = new ConversationChain({
     llm,
-    prompt: promptWithHistory, // Use the modified prompt template
+    prompt: promptWithHistory,
     memory,
     verbose: true,
   });
@@ -63,20 +82,62 @@ async function getOrCreateConversation(conversationId: string) {
     throw new Error("OPENAI_API_KEY is not set");
   }
 
+  // Fetch conversation history from database
+  const messages = await prisma.conversation.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const history = messages.map((msg) => ({
+    type: msg.sender,
+    content: msg.message,
+  }));
+
+  // Return existing chain with its memory
   if (conversationRegistry[conversationId]) {
-    const chain = conversationRegistry[conversationId];
-    const vectorStore = await loadOrCreateVectorStore(apiKey);
-    return { chain, vectorStore };
+    const { chain } = conversationRegistry[conversationId];
+    return {
+      chain,
+      vectorStore: await loadOrCreateVectorStore(apiKey),
+    };
   }
 
-  const { chain, vectorStore } = await createNewConversationChain();
-  conversationRegistry[conversationId] = chain;
+  // Create new chain with history from database
+  const { chain, vectorStore } = await createNewConversationChain(history);
+
+  conversationRegistry[conversationId] = {
+    chain,
+    createdAt: Date.now(),
+  };
+
   return { chain, vectorStore };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, conversationId } = await req.json();
+    const { message, conversationId, isNewConversation } = await req.json();
+    const userId = 1; // From auth
+
+    // Generate name only for new conversations
+    const name = isNewConversation
+      ? `c${Date.now()}`
+      : (
+          await prisma.conversation.findFirst({
+            where: { conversationId },
+            select: { name: true },
+          })
+        )?.name || `c${Date.now()}`;
+
+    // Create message entries with the same name
+    await prisma.conversation.create({
+      data: {
+        userId,
+        message,
+        sender: "user",
+        conversationId,
+        name,
+      },
+    });
 
     if (!message) {
       return NextResponse.json(
@@ -97,6 +158,17 @@ export async function POST(req: NextRequest) {
     const response = await chain.invoke({
       question: message,
       context: `relevant context: ${context}`,
+    });
+
+    // After AI response
+    await prisma.conversation.create({
+      data: {
+        userId,
+        message: response.response,
+        sender: "ai",
+        conversationId,
+        name,
+      },
     });
 
     return NextResponse.json({ response: response.response });
