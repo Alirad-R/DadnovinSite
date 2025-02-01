@@ -14,10 +14,22 @@ datasource db {
 }
 
 model User {
-  id        Int     @id @default(autoincrement())
-  firstName String
-  lastName  String
-  email     String  @unique
-  password  String
-  createdAt DateTime @default(now())
+  id           Int            @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  email        String         @unique
+  password     String
+  createdAt    DateTime       @default(now())
+  Conversation Conversation[]
+}
+
+model Conversation {
+  id             String   @id @default(uuid())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  message        String
+  sender         String // 'user' or 'ai'
+  createdAt      DateTime @default(now())
+  conversationId String // Unique ID for the conversation thread
+  name           String // Display name like "c1", "c2"
 }
