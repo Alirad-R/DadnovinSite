@@ -1,9 +1,11 @@
-import { HNSWLib } from "@langchain/community/vectorstores/hnswlib";
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { access } from "fs/promises";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+
+const VECTOR_STORE_PATH = "./vector-store";
+const DOCS_FILE = path.join(VECTOR_STORE_PATH, "docs.json");
 
 async function loadDocumentsFromDirectory(directoryPath: string) {
   try {
@@ -30,37 +32,34 @@ async function loadDocumentsFromDirectory(directoryPath: string) {
   }
 }
 
-async function saveVectorStore(vectorStore: HNSWLib, directory: string) {
-  await vectorStore.save(directory);
-  console.log(`Vector store saved to ${directory}`);
+async function saveVectorStore(documents: any[]) {
+  await fs.mkdir(VECTOR_STORE_PATH, { recursive: true });
+  await fs.writeFile(DOCS_FILE, JSON.stringify(documents));
+  console.log(`Documents saved to ${DOCS_FILE}`);
 }
 
 async function loadOrCreateVectorStore(openAIApiKey: string) {
-  const VECTOR_STORE_PATH = "./vector-store";
+  const embeddings = new OpenAIEmbeddings({ openAIApiKey });
 
   try {
-    try {
-      await access(VECTOR_STORE_PATH);
-      console.log("Loading existing vector store...");
-      const embeddings = new OpenAIEmbeddings({ openAIApiKey });
-      return await HNSWLib.load(VECTOR_STORE_PATH, embeddings);
-    } catch {
-      console.log("Creating new vector store...");
-      const documents = await loadDocumentsFromDirectory("./data");
-
-      if (documents.length === 0) {
-        console.warn("No documents found in the data directory!");
-      }
-
-      const embeddings = new OpenAIEmbeddings({ openAIApiKey });
-      const vectorStore = await HNSWLib.fromDocuments(documents, embeddings);
-      await saveVectorStore(vectorStore, VECTOR_STORE_PATH);
-
-      return vectorStore;
-    }
+    console.log("Loading existing vector store...");
+    const docsContent = await fs.readFile(DOCS_FILE, "utf-8");
+    const documents = JSON.parse(docsContent);
+    return await MemoryVectorStore.fromDocuments(documents, embeddings);
   } catch (error) {
-    console.error("Error with vector store:", error);
-    throw error;
+    console.log("Creating new vector store...");
+    const documents = await loadDocumentsFromDirectory("./data");
+
+    if (documents.length === 0) {
+      console.warn("No documents found in the data directory!");
+    }
+
+    const vectorStore = await MemoryVectorStore.fromDocuments(
+      documents,
+      embeddings
+    );
+    await saveVectorStore(documents);
+    return vectorStore;
   }
 }
 

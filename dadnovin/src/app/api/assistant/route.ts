@@ -4,8 +4,10 @@ import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
+import * as hub from "langchain/hub";
 import { BufferMemory } from "langchain/memory";
 import { NextRequest, NextResponse } from "next/server";
+import { loadOrCreateVectorStore } from "../../../lib/vectorStoreManager";
 
 // Registry to store conversation chains
 const conversationRegistry: Record<string, ConversationChain> = {};
@@ -20,36 +22,56 @@ async function createNewConversationChain() {
     temperature: 1,
   });
 
-  const promptTemplate = ChatPromptTemplate.fromMessages([
-    ["system", "You are a helpful AI assistant."],
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not set");
+  }
+
+  const vectorStore = await loadOrCreateVectorStore(apiKey);
+
+  // Get the base prompt
+  const basePrompt = (await hub.pull(
+    "loulou/lil_loulou"
+  )) as ChatPromptTemplate;
+
+  // Build a new prompt template that includes "history" and "context"
+  const promptWithHistory = ChatPromptTemplate.fromMessages([
+    ...basePrompt.promptMessages,
     new MessagesPlaceholder("history"),
-    ["human", "{input}"],
+    ["human", "{context}\n\nQuestion: {question}"],
   ]);
 
   const memory = new BufferMemory({
     returnMessages: true,
     memoryKey: "history",
-    inputKey: "input",
+    inputKey: "question",
   });
 
   const chain = new ConversationChain({
     llm,
-    prompt: promptTemplate,
+    prompt: promptWithHistory, // Use the modified prompt template
     memory,
     verbose: true,
   });
 
-  return chain;
+  return { chain, vectorStore };
 }
 
 async function getOrCreateConversation(conversationId: string) {
-  if (conversationRegistry[conversationId]) {
-    return conversationRegistry[conversationId];
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not set");
   }
 
-  const chain = await createNewConversationChain();
+  if (conversationRegistry[conversationId]) {
+    const chain = conversationRegistry[conversationId];
+    const vectorStore = await loadOrCreateVectorStore(apiKey);
+    return { chain, vectorStore };
+  }
+
+  const { chain, vectorStore } = await createNewConversationChain();
   conversationRegistry[conversationId] = chain;
-  return chain;
+  return { chain, vectorStore };
 }
 
 export async function POST(req: NextRequest) {
@@ -63,11 +85,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const chain = await getOrCreateConversation(conversationId);
+    const { chain, vectorStore } = await getOrCreateConversation(
+      conversationId
+    );
+    const searchResults = await vectorStore.similaritySearch(message, 5);
+    const context = searchResults
+      .map((doc: { pageContent: string }) => doc.pageContent)
+      .join("\n");
 
     // Get response from the chain
     const response = await chain.invoke({
-      input: message,
+      question: message,
+      context: `relevant context: ${context}`,
     });
 
     return NextResponse.json({ response: response.response });
