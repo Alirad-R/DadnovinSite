@@ -37,7 +37,9 @@ async function createNewConversationChain(existingHistory: any[] = []) {
   const vectorStore = await loadOrCreateVectorStore(apiKey);
 
   // Pull the base prompt from LangChain Hub.
-  const basePrompt = (await hub.pull("loulou/lil_loulou")) as ChatPromptTemplate;
+  const basePrompt = (await hub.pull(
+    "loulou/lil_loulou"
+  )) as ChatPromptTemplate;
 
   // Build a prompt that accepts "history" and "context".
   const promptWithHistory = ChatPromptTemplate.fromMessages([
@@ -75,15 +77,18 @@ async function createNewConversationChain(existingHistory: any[] = []) {
   return { chain, vectorStore };
 }
 
-export async function getOrCreateConversation(conversationId: string) {
+export async function getOrCreateConversation(
+  conversationId: string,
+  userId: number
+) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set");
   }
 
-  // Load the conversation history from the database.
+  // Load the conversation history from the database filtering by userId.
   const messages = await prisma.conversation.findMany({
-    where: { conversationId },
+    where: { conversationId, userId },
     orderBy: { createdAt: "asc" },
   });
 
@@ -92,9 +97,10 @@ export async function getOrCreateConversation(conversationId: string) {
     content: msg.message,
   }));
 
-  // If a chain already exists in memory for this conversation, return it.
-  if (conversationRegistry[conversationId]) {
-    const { chain } = conversationRegistry[conversationId];
+  // Use a combined key for the in-memory conversation registry.
+  const conversationKey = `${userId}-${conversationId}`;
+  if (conversationRegistry[conversationKey]) {
+    const { chain } = conversationRegistry[conversationKey];
     return {
       chain,
       vectorStore: await loadOrCreateVectorStore(apiKey),
@@ -104,7 +110,7 @@ export async function getOrCreateConversation(conversationId: string) {
   // Otherwise, create a new chain and store it.
   const { chain, vectorStore } = await createNewConversationChain(history);
 
-  conversationRegistry[conversationId] = {
+  conversationRegistry[conversationKey] = {
     chain,
     createdAt: Date.now(),
   };
@@ -114,10 +120,14 @@ export async function getOrCreateConversation(conversationId: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, conversationId } = await req.json();
+    // Extract the user id from the header. If not present, forbid the request.
+    const headerUserId = req.headers.get("x-user-id");
+    if (!headerUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = Number(headerUserId);
 
-    // TODO: Replace the hard-coded user id with proper authentication.
-    const userId = 1;
+    const { message, conversationId } = await req.json();
 
     if (!message) {
       return NextResponse.json(
@@ -126,14 +136,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Retrieve the conversation name from the database if it exists.
+    // Retrieve the conversation name from the database if it exists (filtered by userId).
     let name =
-      (await prisma.conversation.findFirst({
-        where: { conversationId },
-        select: { name: true },
-      }))?.name || `c${Date.now()}`;
+      (
+        await prisma.conversation.findFirst({
+          where: { conversationId, userId },
+          select: { name: true },
+        })
+      )?.name || `c${Date.now()}`;
 
-    // Save the user’s message to the database.
+    // Save the user's message to the database.
     await prisma.conversation.create({
       data: {
         userId,
@@ -145,7 +157,10 @@ export async function POST(req: NextRequest) {
     });
 
     // Retrieve the existing conversation chain from our registry.
-    const { chain, vectorStore } = await getOrCreateConversation(conversationId);
+    const { chain, vectorStore } = await getOrCreateConversation(
+      conversationId,
+      userId
+    );
 
     // Get additional context via vectorStore.
     const searchResults = await vectorStore.similaritySearch(message, 5);
@@ -193,7 +208,7 @@ export async function POST(req: NextRequest) {
         await writer.ready;
         await writer.close();
 
-        // Save the AI’s response to the database.
+        // Save the AI's response to the database.
         await prisma.conversation.create({
           data: {
             userId,

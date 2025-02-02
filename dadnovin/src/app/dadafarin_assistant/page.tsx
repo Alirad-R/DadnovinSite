@@ -1,15 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { v4 as uuidv4 } from "uuid";
 import ConversationList from "@/components/ConversationList";
 import ChatWindow from "@/components/ChatWindow";
 
 export default function DadafarinAssistant() {
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const { user } = useAuth();
+
+  // Wait until the user is available before rendering.
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
+  const [currentConversationId, setCurrentConversationId] = useState<
+    string | null
+  >(null);
   const [isNewConversation, setIsNewConversation] = useState(false);
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<
+    string | null
+  >(null);
   const [conversationList, setConversationList] = useState<any[]>([]);
 
   // When a conversation is set, initialize its chain once.
@@ -17,22 +29,29 @@ export default function DadafarinAssistant() {
     if (currentConversationId) {
       fetch("/api/assistant/init", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id.toString(),
+        },
         body: JSON.stringify({ conversationId: currentConversationId }),
       })
         .then((res) => res.json())
         .then((data) => {
           console.log("Conversation initialized:", data);
         })
-        .catch((err) => console.error("Failed to initialize conversation:", err));
+        .catch((err) =>
+          console.error("Failed to initialize conversation:", err)
+        );
     }
-  }, [currentConversationId]);
+  }, [currentConversationId, user]);
 
   // Load conversation list on mount.
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const res = await fetch("/api/conversations");
+        const res = await fetch("/api/conversations", {
+          headers: { "x-user-id": user.id.toString() },
+        });
         const data = await res.json();
         setConversationList(data);
       } catch (error) {
@@ -40,7 +59,7 @@ export default function DadafarinAssistant() {
       }
     };
     fetchConversations();
-  }, []);
+  }, [user]);
 
   // When selecting a conversation, update state.
   const handleSelectConversation = (conversationId: string) => {
@@ -52,9 +71,13 @@ export default function DadafarinAssistant() {
   // Delete a conversation.
   const handleDeleteConversation = async (conversationId: string) => {
     try {
-      const response = await fetch(`/api/conversations?conversationId=${conversationId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/conversations?conversationId=${conversationId}`,
+        {
+          method: "DELETE",
+          headers: { "x-user-id": user.id.toString() },
+        }
+      );
       if (response.ok) {
         setConversationList((prev) =>
           prev.filter((conv) => conv.conversationId !== conversationId)
@@ -80,7 +103,10 @@ export default function DadafarinAssistant() {
   return (
     <div className="flex flex-col h-screen">
       <Navbar />
-      <h1 className="text-3xl font-bold text-center py-6" style={{ color: "var(--foreground)" }}>
+      <h1
+        className="text-3xl font-bold text-center py-6"
+        style={{ color: "var(--foreground)" }}
+      >
         دستیار هوش مصنوعی
       </h1>
       <div className="flex flex-1 overflow-hidden">
