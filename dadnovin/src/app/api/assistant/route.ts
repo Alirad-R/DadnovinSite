@@ -11,6 +11,8 @@ import { loadOrCreateVectorStore } from "../../../lib/vectorStoreManager";
 import prisma from "@/lib/prisma";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
+import { CallbackManager } from "@langchain/core/callbacks/manager";
+import { RunnableSequence } from "@langchain/core/runnables";
 
 // Registry to store conversation chains
 const conversationRegistry: Record<
@@ -88,7 +90,7 @@ async function getOrCreateConversation(conversationId: string) {
     orderBy: { createdAt: "asc" },
   });
 
-  const history = messages.map((msg) => ({
+  const history = messages.map((msg: any) => ({
     type: msg.sender,
     content: msg.message,
   }));
@@ -154,24 +156,86 @@ export async function POST(req: NextRequest) {
       .map((doc: { pageContent: string }) => doc.pageContent)
       .join("\n");
 
-    // Get response from the chain
-    const response = await chain.invoke({
-      question: message,
-      context: `relevant context: ${context}`,
+    const encoder = new TextEncoder();
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
+
+    const sendData = (data: string) => {
+      writer.write(encoder.encode(`data: ${data}\n\n`));
+    };
+
+    const sendEvent = (event: string, data: string) => {
+      writer.write(encoder.encode(`event: ${event}\ndata: ${data}\n\n`));
+    };
+
+    // Create a new model instance with streaming enabled
+    const streamingModel = new ChatOpenAI({
+      modelName: "deepseek-chat",
+      openAIApiKey: process.env.DEEPSEEK_API_KEY,
+      configuration: {
+        baseURL: "https://api.deepseek.com/v1",
+      },
+      temperature: 1,
+      streaming: true,
     });
 
-    // After AI response
-    await prisma.conversation.create({
-      data: {
-        userId,
-        message: response.response,
-        sender: "ai",
-        conversationId,
-        name,
+    // Create a new chain with the streaming model
+    const streamingChain = new ConversationChain({
+      llm: streamingModel,
+      prompt: chain.prompt,
+      memory: chain.memory,
+      verbose: true,
+    });
+
+    (async () => {
+      try {
+        let fullResponse = "";
+
+        const response = await streamingChain.call(
+          {
+            question: message,
+            context: `relevant context: ${context}`,
+          },
+          {
+            callbacks: [
+              {
+                handleLLMNewToken(token: string) {
+                  sendData(JSON.stringify({ data: token }));
+                  fullResponse += token;
+                },
+              },
+            ],
+          }
+        );
+
+        sendEvent("end", JSON.stringify({ data: "[DONE]" }));
+        await writer.ready;
+        await writer.close();
+
+        // After AI response
+        await prisma.conversation.create({
+          data: {
+            userId,
+            message: fullResponse,
+            sender: "ai",
+            conversationId,
+            name,
+          },
+        });
+      } catch (error) {
+        console.error("Streaming error:", error);
+        sendEvent("error", JSON.stringify({ error: "Streaming failed" }));
+        await writer.close();
+      }
+    })();
+
+    return new NextResponse(stream.readable, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        Connection: "keep-alive",
+        "Cache-Control": "no-cache, no-transform",
       },
     });
-
-    return NextResponse.json({ response: response.response });
   } catch (error) {
     console.error("Error in assistant API:", error);
     return NextResponse.json(
