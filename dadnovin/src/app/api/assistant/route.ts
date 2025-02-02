@@ -9,18 +9,16 @@ import { BufferMemory } from "langchain/memory";
 import { NextRequest, NextResponse } from "next/server";
 import { loadOrCreateVectorStore } from "../../../lib/vectorStoreManager";
 import prisma from "@/lib/prisma";
-import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
-import { CallbackManager } from "@langchain/core/callbacks/manager";
-import { RunnableSequence } from "@langchain/core/runnables";
 
-// Registry to store conversation chains
+// Registry to store conversation chains in memory.
 const conversationRegistry: Record<
   string,
   { chain: ConversationChain; createdAt: number }
 > = {};
 
 async function createNewConversationChain(existingHistory: any[] = []) {
+  // Create a streaming-enabled LLM.
   const llm = new ChatOpenAI({
     modelName: "deepseek-chat",
     openAIApiKey: process.env.DEEPSEEK_API_KEY,
@@ -28,6 +26,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
       baseURL: "https://api.deepseek.com/v1",
     },
     temperature: 1,
+    streaming: true, // Enable streaming for later calls.
   });
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -37,19 +36,17 @@ async function createNewConversationChain(existingHistory: any[] = []) {
 
   const vectorStore = await loadOrCreateVectorStore(apiKey);
 
-  // Get the base prompt
-  const basePrompt = (await hub.pull(
-    "loulou/lil_loulou"
-  )) as ChatPromptTemplate;
+  // Pull the base prompt from LangChain Hub.
+  const basePrompt = (await hub.pull("loulou/lil_loulou")) as ChatPromptTemplate;
 
-  // Build a new prompt template that includes "history" and "context"
+  // Build a prompt that accepts "history" and "context".
   const promptWithHistory = ChatPromptTemplate.fromMessages([
     ...basePrompt.promptMessages,
     new MessagesPlaceholder("history"),
     ["human", "{context}\n\nQuestion: {question}"],
   ]);
 
-  // Initialize chat history with existing messages
+  // Initialize chat history with any existing messages.
   const messageHistory = new ChatMessageHistory();
   for (const msg of existingHistory) {
     if (msg.type === "user") {
@@ -59,7 +56,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
     }
   }
 
-  // Create memory with initialized history
+  // Create a memory object using the chat history.
   const memory = new BufferMemory({
     returnMessages: true,
     memoryKey: "history",
@@ -67,7 +64,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
     chatHistory: messageHistory,
   });
 
-  // Create chain with memory
+  // Create the conversation chain.
   const chain = new ConversationChain({
     llm,
     prompt: promptWithHistory,
@@ -78,13 +75,13 @@ async function createNewConversationChain(existingHistory: any[] = []) {
   return { chain, vectorStore };
 }
 
-async function getOrCreateConversation(conversationId: string) {
+export async function getOrCreateConversation(conversationId: string) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set");
   }
 
-  // Fetch conversation history from database
+  // Load the conversation history from the database.
   const messages = await prisma.conversation.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },
@@ -95,7 +92,7 @@ async function getOrCreateConversation(conversationId: string) {
     content: msg.message,
   }));
 
-  // Return existing chain with its memory
+  // If a chain already exists in memory for this conversation, return it.
   if (conversationRegistry[conversationId]) {
     const { chain } = conversationRegistry[conversationId];
     return {
@@ -104,7 +101,7 @@ async function getOrCreateConversation(conversationId: string) {
     };
   }
 
-  // Create new chain with history from database
+  // Otherwise, create a new chain and store it.
   const { chain, vectorStore } = await createNewConversationChain(history);
 
   conversationRegistry[conversationId] = {
@@ -117,20 +114,26 @@ async function getOrCreateConversation(conversationId: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { message, conversationId, isNewConversation } = await req.json();
-    const userId = 1; // From auth
+    const { message, conversationId } = await req.json();
 
-    // Generate name only for new conversations
-    const name = isNewConversation
-      ? `c${Date.now()}`
-      : (
-          await prisma.conversation.findFirst({
-            where: { conversationId },
-            select: { name: true },
-          })
-        )?.name || `c${Date.now()}`;
+    // TODO: Replace the hard-coded user id with proper authentication.
+    const userId = 1;
 
-    // Create message entries with the same name
+    if (!message) {
+      return NextResponse.json(
+        { error: "Message is required" },
+        { status: 400 }
+      );
+    }
+
+    // Retrieve the conversation name from the database if it exists.
+    let name =
+      (await prisma.conversation.findFirst({
+        where: { conversationId },
+        select: { name: true },
+      }))?.name || `c${Date.now()}`;
+
+    // Save the user’s message to the database.
     await prisma.conversation.create({
       data: {
         userId,
@@ -141,21 +144,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (!message) {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
-      );
-    }
+    // Retrieve the existing conversation chain from our registry.
+    const { chain, vectorStore } = await getOrCreateConversation(conversationId);
 
-    const { chain, vectorStore } = await getOrCreateConversation(
-      conversationId
-    );
+    // Get additional context via vectorStore.
     const searchResults = await vectorStore.similaritySearch(message, 5);
     const context = searchResults
       .map((doc: { pageContent: string }) => doc.pageContent)
       .join("\n");
 
+    // Prepare a streaming response.
     const encoder = new TextEncoder();
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
@@ -168,30 +166,12 @@ export async function POST(req: NextRequest) {
       writer.write(encoder.encode(`event: ${event}\ndata: ${data}\n\n`));
     };
 
-    // Create a new model instance with streaming enabled
-    const streamingModel = new ChatOpenAI({
-      modelName: "deepseek-chat",
-      openAIApiKey: process.env.DEEPSEEK_API_KEY,
-      configuration: {
-        baseURL: "https://api.deepseek.com/v1",
-      },
-      temperature: 1,
-      streaming: true,
-    });
-
-    // Create a new chain with the streaming model
-    const streamingChain = new ConversationChain({
-      llm: streamingModel,
-      prompt: chain.prompt,
-      memory: chain.memory,
-      verbose: true,
-    });
-
     (async () => {
       try {
         let fullResponse = "";
 
-        const response = await streamingChain.call(
+        // Use the existing conversation chain to process the new message.
+        await chain.call(
           {
             question: message,
             context: `relevant context: ${context}`,
@@ -208,11 +188,12 @@ export async function POST(req: NextRequest) {
           }
         );
 
+        // Signal the end of streaming.
         sendEvent("end", JSON.stringify({ data: "[DONE]" }));
         await writer.ready;
         await writer.close();
 
-        // After AI response
+        // Save the AI’s response to the database.
         await prisma.conversation.create({
           data: {
             userId,
