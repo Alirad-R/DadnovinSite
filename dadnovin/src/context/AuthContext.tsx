@@ -1,12 +1,14 @@
-'use client';
-
-import { createContext, useContext, useState, useEffect } from 'react';
+// authcontext.ts (modified snippet)
+"use client";
+import { createContext, useContext, useState, useEffect } from "react";
 
 type User = {
   id: number;
   email: string;
   firstName: string;
   lastName: string;
+  // Optionally include validUntil if you want to use it on the client-side:
+  validUntil?: string | null;
 } | null;
 
 type AuthContextType = {
@@ -21,36 +23,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
-      // Fetch user data
-      fetch('/api/auth/me', {
+      fetch("/api/auth/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
           if (data.user) {
-            console.log('Setting user from token:', data.user);
-            setUser(data.user);
+            console.log("Setting user from token:", data.user);
+            setUser({
+              ...data.user,
+              validUntil: data.validUntil,
+            });
           }
         })
         .catch((error) => {
-          console.error('Error fetching user:', error);
-          localStorage.removeItem('token');
+          console.error("Error fetching user:", error);
+          localStorage.removeItem("token");
+          setUser(null);
         });
     }
   }, []);
 
   const logout = () => {
-    console.log('Logging out');
-    localStorage.removeItem('token');
+    console.log("Logging out");
+    localStorage.removeItem("token");
     setUser(null);
   };
 
-  console.log('Current user state:', user);
+  console.log("Current user state:", user);
 
   return (
     <AuthContext.Provider value={{ user, setUser, logout }}>
@@ -62,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-} 
+}
