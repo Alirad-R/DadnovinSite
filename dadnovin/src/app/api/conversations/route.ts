@@ -3,12 +3,19 @@ import prisma from "@/lib/prisma";
 
 export async function GET(req: Request) {
   try {
+    // Extract user id from the request header.
+    const userIdHeader = req.headers.get("x-user-id");
+    if (!userIdHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = Number(userIdHeader);
+
     const { searchParams } = new URL(req.url);
     const conversationId = searchParams.get("conversationId");
 
     if (conversationId) {
       const messages = await prisma.conversation.findMany({
-        where: { conversationId },
+        where: { conversationId, userId },
         orderBy: { createdAt: "asc" },
       });
       return NextResponse.json(messages);
@@ -16,6 +23,7 @@ export async function GET(req: Request) {
 
     const conversations = await prisma.conversation.findMany({
       distinct: ["conversationId"],
+      where: { userId },
       orderBy: { createdAt: "desc" },
       select: {
         conversationId: true,
@@ -36,6 +44,13 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    // Extract user id from the request header.
+    const userIdHeader = req.headers.get("x-user-id");
+    if (!userIdHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = Number(userIdHeader);
+
     const { searchParams } = new URL(req.url);
     const conversationId = searchParams.get("conversationId");
 
@@ -47,7 +62,7 @@ export async function DELETE(req: Request) {
     }
 
     await prisma.conversation.deleteMany({
-      where: { conversationId },
+      where: { conversationId, userId },
     });
 
     return NextResponse.json({ success: true });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 interface ChatMessage {
   type: "user" | "ai";
@@ -18,16 +19,22 @@ interface UseChatOptions {
 export function useChat({ conversationId }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!conversationId) {
+    if (!conversationId || !user?.id) {
       setMessages([]);
       return;
     }
     // Load existing messages from the backend.
     const fetchOldMessages = async () => {
       try {
-        const res = await fetch(`/api/conversations?conversationId=${conversationId}`);
+        const res = await fetch(
+          `/api/conversations?conversationId=${conversationId}`,
+          {
+            headers: { "x-user-id": user.id.toString() },
+          }
+        );
         const data = await res.json();
         const loadedMessages: ChatMessage[] = data.map((msg: any) => ({
           type: msg.sender === "user" ? "user" : "ai",
@@ -39,9 +46,13 @@ export function useChat({ conversationId }: UseChatOptions) {
       }
     };
     fetchOldMessages();
-  }, [conversationId]);
+  }, [conversationId, user]);
 
   const sendMessage = async (userInput: string) => {
+    if (!user) {
+      console.error("User not authenticated");
+      return;
+    }
     if (!userInput.trim() || !conversationId) return;
     setIsLoading(true);
     // Add the user message optimistically.
@@ -50,7 +61,10 @@ export function useChat({ conversationId }: UseChatOptions) {
     try {
       const response = await fetch("/api/assistant", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id.toString(),
+        },
         body: JSON.stringify({
           message: userInput,
           conversationId,
@@ -84,7 +98,10 @@ export function useChat({ conversationId }: UseChatOptions) {
                 setMessages((prev) => {
                   const lastMsg = prev[prev.length - 1];
                   if (!lastMsg || lastMsg.type !== "ai") return prev;
-                  const updatedMsg = { ...lastMsg, content: lastMsg.content + data };
+                  const updatedMsg = {
+                    ...lastMsg,
+                    content: lastMsg.content + data,
+                  };
                   return [...prev.slice(0, -1), updatedMsg];
                 });
               } else {
