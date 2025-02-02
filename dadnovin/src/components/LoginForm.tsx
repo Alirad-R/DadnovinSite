@@ -13,6 +13,8 @@ export default function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(""); // Clear any previous errors
+
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
@@ -23,7 +25,7 @@ export default function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Something went wrong");
+        throw new Error(data.error || "Login failed");
       }
 
       localStorage.setItem("token", data.token);
@@ -34,11 +36,21 @@ export default function LoginForm() {
           Authorization: `Bearer ${data.token}`,
         },
       });
+
+      if (!userRes.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+
       const userData = await userRes.json();
-      setUser(userData.user);
+      setUser({
+        ...userData.user,
+        validUntil: userData.validUntil,
+      });
+
       router.push("/");
     } catch (err: any) {
-      setError(err.message);
+      console.error("Login error:", err);
+      setError(err.message || "An error occurred during login");
     }
   };
 

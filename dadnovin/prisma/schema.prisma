@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -21,6 +15,7 @@ model User {
   password     String
   createdAt    DateTime       @default(now())
   Conversation Conversation[]
+  Transaction  Transaction[]  // Added relation to transactions
 }
 
 model Conversation {
@@ -32,4 +27,23 @@ model Conversation {
   createdAt      DateTime @default(now())
   conversationId String // Unique ID for the conversation thread
   name           String // Display name like "c1", "c2"
+}
+
+model Transaction {
+  id                Int           @id @default(autoincrement())
+  userId            Int
+  user              User          @relation(fields: [userId], references: [id])
+  validUntil        DateTime      
+  amountPaid        Decimal       @db.Decimal(10, 2)
+  paymentStatus     PaymentStatus
+  createdAt         DateTime      @default(now())
+  externalPaymentId String?      
+
+  @@index([userId])
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }
