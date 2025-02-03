@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthForms from "@/components/AuthForms";
@@ -24,13 +24,25 @@ function BuyTime({ onPurchaseComplete }: { onPurchaseComplete: () => void }) {
       });
 
       if (!response.ok) {
-        throw new Error("Payment failed");
+        throw new Error("Payment initiation failed");
       }
 
-      onPurchaseComplete();
-    } catch (error) {
-      console.error("Error buying time:", error);
-      alert("خطا در خرید زمان");
+      const data = await response.json();
+      console.log("Payment initiated:", data);
+
+      if (data.paymentUrl && data.id_get) {
+        // Store the id_get for verification
+        localStorage.setItem("pending_payment_id", data.id_get);
+        localStorage.setItem("pending_payment_time", new Date().toISOString());
+
+        // Redirect to Bitpay payment page
+        window.location.href = data.paymentUrl;
+      } else {
+        throw new Error("No payment URL received");
+      }
+    } catch (error: any) {
+      console.error("Error initiating payment:", error);
+      alert(error.message || "خطا در شروع پرداخت");
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +61,7 @@ function BuyTime({ onPurchaseComplete }: { onPurchaseComplete: () => void }) {
             disabled={isLoading}
             className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400"
           >
-            {hours} ساعت - {hours * 10}$
+            {hours} ساعت - {hours * 10}${isLoading && " (در حال پردازش...)"}
           </button>
         ))}
       </div>
@@ -61,8 +73,7 @@ export default function AccountPage() {
   const { user, logout, setUser } = useAuth();
   const router = useRouter();
 
-  const handlePurchaseComplete = () => {
-    // Refresh the user data to update the validUntil
+  const handlePurchaseComplete = useCallback(() => {
     const token = localStorage.getItem("token");
     if (token) {
       fetch("/api/auth/me", {
@@ -81,7 +92,70 @@ export default function AccountPage() {
         })
         .catch(console.error);
     }
-  };
+  }, [setUser]);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const isVerifying = queryParams.get("verify");
+    const transId = queryParams.get("trans_id");
+    const idGet = queryParams.get("id_get");
+
+    async function verifyPayment(transId: string, idGet: string) {
+      try {
+        console.log("Starting payment verification for:", { transId, idGet });
+
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
+
+        // Call our own API endpoint instead of Bitpay directly
+        const response = await fetch("/api/payments/verify-bitpay", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ transId, idGet }),
+        });
+
+        const result = await response.json();
+        console.log("Payment verification result:", result);
+
+        const storedIdGet = localStorage.getItem("pending_payment_id");
+        if (storedIdGet === idGet) {
+          console.log("Payment ID verified!", {
+            transId,
+            idGet,
+            storedTime: localStorage.getItem("pending_payment_time"),
+            verificationResult: result,
+          });
+
+          if (result.status === 1) {
+            handlePurchaseComplete();
+          }
+        } else {
+          console.error("Payment ID mismatch!", {
+            expected: storedIdGet,
+            received: idGet,
+          });
+        }
+
+        // Clear stored data
+        localStorage.removeItem("pending_payment_id");
+        localStorage.removeItem("pending_payment_time");
+      } catch (error) {
+        console.error("Payment verification error:", error);
+      } finally {
+        // Clean up URL
+        window.history.replaceState({}, "", "/account");
+      }
+    }
+
+    if (isVerifying && transId && idGet) {
+      verifyPayment(transId, idGet);
+    }
+  }, [handlePurchaseComplete]);
 
   return (
     <div className="flex flex-col min-h-screen">
