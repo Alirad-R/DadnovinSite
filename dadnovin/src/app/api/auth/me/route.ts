@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    // Fetch the user data
+    // Fetch the user data including validUntil directly from the user model
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       select: {
@@ -27,6 +27,7 @@ export async function GET(request: Request) {
         email: true,
         firstName: true,
         lastName: true,
+        validUntil: true, // directly include validUntil
       },
     });
     console.log("**** just fetched User:", user);
@@ -35,37 +36,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    let validUntil = null;
-
-    try {
-      // Check for an active subscription - wrapped in try/catch in case Transaction table isn't ready
-      const currentDate = new Date();
-      const activeTransaction = await prisma.transaction.findFirst({
-        where: {
-          userId: payload.userId,
-          paymentStatus: "COMPLETED",
-          validUntil: {
-            gt: currentDate,
-          },
-        },
-        orderBy: {
-          validUntil: "desc",
-        },
-      });
-
-      if (activeTransaction) {
-        validUntil = activeTransaction.validUntil;
-      }
-    } catch (error) {
-      console.warn("Could not check subscription status:", error);
-      // Continue without subscription check
-    }
-
-    // Return the user data regardless of subscription status
-    return NextResponse.json({
-      user,
-      validUntil,
-    });
+    // Return the user data, which now directly includes validUntil
+    return NextResponse.json({ user });
   } catch (error) {
     console.error("ME endpoint error:", error);
     return NextResponse.json(
