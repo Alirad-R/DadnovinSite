@@ -13,31 +13,34 @@ model User {
   lastName     String
   email        String         @unique
   password     String
+  validUntil   DateTime?
   createdAt    DateTime       @default(now())
   Conversation Conversation[]
-  Transaction  Transaction[]  // Added relation to transactions
+  Transaction  Transaction[]
 }
 
 model Conversation {
   id             String   @id @default(uuid())
   userId         Int
-  user           User     @relation(fields: [userId], references: [id])
   message        String
-  sender         String // 'user' or 'ai'
+  sender         String
   createdAt      DateTime @default(now())
-  conversationId String // Unique ID for the conversation thread
-  name           String // Display name like "c1", "c2"
+  conversationId String
+  name           String
+  user           User     @relation(fields: [userId], references: [id])
 }
 
 model Transaction {
   id                Int           @id @default(autoincrement())
   userId            Int
-  user              User          @relation(fields: [userId], references: [id])
-  validUntil        DateTime      
   amountPaid        Decimal       @db.Decimal(10, 2)
   paymentStatus     PaymentStatus
   createdAt         DateTime      @default(now())
-  externalPaymentId String?      
+  externalPaymentId String?
+  validUntil        DateTime
+  id_get            String?
+  trans_id          String?
+  user              User          @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
@@ -46,4 +49,11 @@ enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
+}
+
+// NEW MODEL: Price (Prices table)
+model Price {
+  id    Int     @id @default(autoincrement())
+  time  Int     @unique  // Number of hours associated with this price option
+  price Decimal @db.Decimal(10, 2) // Price in USD for the given time
 }

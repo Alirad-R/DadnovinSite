@@ -5,7 +5,7 @@ import FormData from "form-data";
 import axios from "axios";
 
 const BITPAY_API = "adxcv-zzadq-polkjsad-opp13opoz-1sdf455aadzmck1244567";
-
+//check who uses this route 
 async function verifyBitpayTransaction(transId: string, idGet: string) {
   const form = new FormData();
   form.append("api", BITPAY_API);
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     validUntil.setHours(validUntil.getHours() + hours);
 
     // Create transaction record in database
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Create the transaction record
       await tx.transaction.create({
         data: {

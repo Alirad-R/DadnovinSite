@@ -39,10 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((data) => {
           if (data.user) {
             console.log("Setting user from token:", data.user);
-            setUser({
-              ...data.user,
-              validUntil: data.validUntil,
-            });
+            setUser(data.user);
           }
         })
         .catch((error) => {
