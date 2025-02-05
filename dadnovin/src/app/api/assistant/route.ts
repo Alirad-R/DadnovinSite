@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { loadOrCreateVectorStore } from "../../../lib/vectorStoreManager";
 import prisma from "@/lib/prisma";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
+import { verifyToken } from "@/utils/auth";
 
 // Registry to store conversation chains in memory.
 const conversationRegistry: Record<
@@ -120,12 +121,81 @@ export async function getOrCreateConversation(
 
 export async function POST(req: NextRequest) {
   try {
-    // Extract the user id from the header. If not present, forbid the request.
-    const headerUserId = req.headers.get("x-user-id");
-    if (!headerUserId) {
+    // ***** UPDATED: Use Authorization header with JWT *****
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("No or invalid Authorization header");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = Number(headerUserId);
+
+    const token = authHeader.split(" ")[1];
+    const payload = await verifyToken(token);
+    if (!payload) {
+      console.log("Invalid token");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = Number(payload.userId);
+    // ***** END OF UPDATED JWT CHECK *****
+
+    // Check user's validTime in the database based on verified userId.
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { validUntil: true },
+    });
+
+    console.log("User subscription check:", {
+      userId,
+      validUntil: user?.validUntil,
+    });
+
+    if (!user) {
+      console.log("User not found:", userId);
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (!user.validUntil) {
+      console.log("No valid subscription for user:", userId);
+      return NextResponse.json(
+        {
+          error: "Subscription required",
+          code: "NO_SUBSCRIPTION",
+          message: {
+            en: "You need an active subscription to use the AI assistant.",
+            fa: "برای استفاده از دستیار هوش مصنوعی نیاز به اشتراک فعال دارید.",
+          },
+        },
+        { status: 403 }
+      );
+    }
+
+    // Convert validUntil to Date object
+    const validUntil = new Date(user.validUntil);
+    // Get current time in Iran
+    const iranTime = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Tehran",
+    });
+    const currentIranTime = new Date(iranTime);
+
+    console.log("Time check:", {
+      validUntil,
+      currentIranTime,
+      isExpired: validUntil < currentIranTime,
+    });
+
+    if (validUntil < currentIranTime) {
+      console.log("Subscription expired for user:", userId);
+      return NextResponse.json(
+        {
+          error: "Subscription expired",
+          code: "SUBSCRIPTION_EXPIRED",
+          message: {
+            en: "Your subscription has expired. Please renew your subscription to continue using the AI assistant.",
+            fa: "اشتراک شما منقضی شده است. لطفاً برای ادامه استفاده از دستیار هوش مصنوعی، اشتراک خود را تمدید کنید.",
+          },
+        },
+        { status: 403 }
+      );
+    }
 
     const { message, conversationId } = await req.json();
 
@@ -181,11 +251,19 @@ export async function POST(req: NextRequest) {
       writer.write(encoder.encode(`event: ${event}\ndata: ${data}\n\n`));
     };
 
+    // Logging timezone info
+    console.log({
+      serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      serverTime: new Date().toString(),
+      serverTimeUTC: new Date().toUTCString(),
+      envTZ: process.env.TZ,
+    });
+
     (async () => {
       try {
         let fullResponse = "";
 
-        // Use the existing conversation chain to process the new message.
+        // Use the conversation chain to process the new message.
         await chain.call(
           {
             question: message,

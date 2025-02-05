@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/utils/auth";
-import prisma from "@/lib/prisma";
+import prisma  from "@/lib/prisma";
 import FormData from "form-data";
 import axios from "axios";
 

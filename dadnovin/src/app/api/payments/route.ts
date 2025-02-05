@@ -17,7 +17,7 @@ async function initiateBitpayPayment(amount: number) {
   );
 
   form.append("name", "Test Payment");
-  form.append("description", `Payment for ${amount} USD`);
+  form.append("description", `Payment for ${amount} Tomans`);
   form.append("factorId", `INV-${Date.now()}`);
 
   try {
@@ -81,6 +81,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
     const priceEntry = await prisma.price.findUnique({
       where: { time: hours },
     });
@@ -93,22 +94,30 @@ export async function POST(request: Request) {
 
     // Compute payment amount using the price from the DB.
     const amountInUSD = Number(priceEntry.price);
-    const validUntil = new Date();
+
+    // Get current time in Iran and add the purchased hours
+    const iranTime = new Date().toLocaleString("en-US", {
+      timeZone: "Asia/Tehran",
+    });
+    const validUntil = new Date(iranTime);
     validUntil.setHours(validUntil.getHours() + hours);
 
-    console.log("Initiating payment with:", {
+    console.log("Payment details:", {
       amount: amountInUSD,
-      redirectUrl:
-        process.env.NEXT_PUBLIC_BASE_URL + "/account/payment-callback",
+      currentIranTime: iranTime,
+      validUntil: validUntil.toString(),
+      validUntilISO: validUntil.toISOString(),
+      hours,
     });
+
     const paymentResult = await initiateBitpayPayment(amountInUSD);
 
-    // Create a new Transaction record with PENDING status incorporating the id_get
+    // Create a new Transaction record with PENDING status
     const pendingTransaction = await prisma.$transaction(async (tx: any) => {
       return await tx.transaction.create({
         data: {
           user: { connect: { id: payload.userId } },
-          validUntil,
+          validUntil: validUntil.toISOString(),
           amountPaid: amountInUSD,
           paymentStatus: "PENDING",
           id_get: paymentResult.id_get,
