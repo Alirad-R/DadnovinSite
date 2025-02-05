@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { verifyToken } from "@/utils/auth";
+
 
 export async function GET(req: Request) {
   try {
     // Extract user id from the request header.
-    const userIdHeader = req.headers.get("x-user-id");
-    if (!userIdHeader) {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("No or invalid Authorization header");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = Number(userIdHeader);
+    const token = authHeader.split(" ")[1];
+    const payload = await verifyToken(token);
+    if (!payload) {
+      console.log("Invalid token");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = Number(payload.userId);
 
     const { searchParams } = new URL(req.url);
     const conversationId = searchParams.get("conversationId");
@@ -44,12 +53,19 @@ export async function GET(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    // Extract user id from the request header.
-    const userIdHeader = req.headers.get("x-user-id");
-    if (!userIdHeader) {
+    // Extract user id from the auth header.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("No or invalid Authorization header");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const userId = Number(userIdHeader);
+    const token = authHeader.split(" ")[1];
+    const payload = await verifyToken(token);
+    if (!payload) {
+      console.log("Invalid token");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = Number(payload.userId);
 
     const { searchParams } = new URL(req.url);
     const conversationId = searchParams.get("conversationId");

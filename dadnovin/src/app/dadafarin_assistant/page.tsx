@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { v4 as uuidv4 } from "uuid";
@@ -9,12 +9,6 @@ import ChatWindow from "@/components/ChatWindow";
 
 export default function DadafarinAssistant() {
   const { user } = useAuth();
-
-  // Wait until the user is available before rendering.
-  if (!user) {
-    return <div>Loading...</div>;
-  }
-
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
@@ -23,15 +17,15 @@ export default function DadafarinAssistant() {
     string | null
   >(null);
   const [conversationList, setConversationList] = useState<any[]>([]);
-
+  const token = localStorage.getItem("token");
   // When a conversation is set, initialize its chain once.
   useEffect(() => {
-    if (currentConversationId) {
+    if (currentConversationId && user) {
       fetch("/api/assistant/init", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-user-id": user.id.toString(),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ conversationId: currentConversationId }),
       })
@@ -45,21 +39,27 @@ export default function DadafarinAssistant() {
     }
   }, [currentConversationId, user]);
 
-  // Load conversation list on mount.
-  useEffect(() => {
-    const fetchConversations = async () => {
+  // Function to fetch conversation list.
+  const fetchConversations = useCallback(async () => {
+    if (user) {
       try {
         const res = await fetch("/api/conversations", {
-          headers: { "x-user-id": user.id.toString() },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
         const data = await res.json();
         setConversationList(data);
       } catch (error) {
         console.error("Error fetching conversation list:", error);
       }
-    };
+    }
+  }, [user, token]);
+
+  // Load conversation list on mount.
+  useEffect(() => {
     fetchConversations();
-  }, [user]);
+  }, [fetchConversations]);
 
   // When selecting a conversation, update state.
   const handleSelectConversation = (conversationId: string) => {
@@ -70,12 +70,13 @@ export default function DadafarinAssistant() {
 
   // Delete a conversation.
   const handleDeleteConversation = async (conversationId: string) => {
+    if (!user) return;
     try {
       const response = await fetch(
         `/api/conversations?conversationId=${conversationId}`,
         {
           method: "DELETE",
-          headers: { "x-user-id": user.id.toString() },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       if (response.ok) {
@@ -100,6 +101,11 @@ export default function DadafarinAssistant() {
     setSelectedConversation(null);
   };
 
+  // If user is not loaded yet, show loading state
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="flex flex-col h-screen">
       <Navbar />
@@ -121,6 +127,8 @@ export default function DadafarinAssistant() {
           <ChatWindow
             conversationId={currentConversationId}
             isNewConversation={isNewConversation}
+            onAutoNewConversation={handleNewConversation}
+            refreshConversationList={fetchConversations}
           />
         </div>
       </div>

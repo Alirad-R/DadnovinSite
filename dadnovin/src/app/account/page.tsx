@@ -7,10 +7,13 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthForms from "@/components/AuthForms";
 import BuyTime from "@/components/BuyTime";
+import { format } from "date-fns-jalali";
 
 export default function AccountPage() {
   const { user, logout, setUser } = useAuth();
   const router = useRouter();
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
+  const [expirationDateTime, setExpirationDateTime] = useState<string>("");
 
   const handlePurchaseComplete = useCallback(() => {
     const token = localStorage.getItem("token");
@@ -73,6 +76,55 @@ export default function AccountPage() {
     }
   }, [handlePurchaseComplete]);
 
+  useEffect(() => {
+    if (user?.validUntil) {
+      const validUntil = new Date(user.validUntil);
+
+      // Get current time in Iran
+      const iranTime = new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Tehran",
+      });
+      const currentIranTime = new Date(iranTime);
+
+      // Format the date using toLocaleString with Tehran timezone
+      const formattedDateTime = validUntil.toLocaleString("en-US", {
+        timeZone: "Europe/London", // ughhhhh it's necessary in order to get it to display the correct time. we're storing the time in Db in Tehran time. so in order for it to not fuck up, we have to pretend like tehran time is London time.
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      setExpirationDateTime(formattedDateTime);
+
+      if (validUntil < currentIranTime) {
+        setSubscriptionStatus("منقضی شده");
+      } else {
+        const remainingTime = validUntil.getTime() - currentIranTime.getTime();
+        const remainingDays = Math.floor(remainingTime / (1000 * 60 * 60 * 24));
+        const remainingHours = Math.floor(
+          (remainingTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+        );
+
+        let statusText = "";
+        if (remainingDays > 0) {
+          statusText += `${remainingDays} روز`;
+        }
+        if (remainingHours > 0 || remainingDays > 0) {
+          if (remainingDays > 0) statusText += " و ";
+          statusText += `${remainingHours} ساعت`;
+        }
+        statusText += " باقی‌مانده";
+
+        setSubscriptionStatus(statusText);
+      }
+    } else {
+      setSubscriptionStatus("بدون اشتراک");
+      setExpirationDateTime("");
+    }
+  }, [user?.validUntil]);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -88,8 +140,7 @@ export default function AccountPage() {
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
                   <p className="text-lg text-right dark:text-white">
                     <span className="font-bold ml-2">:نام</span>
-                    {user.firstName} {user.lastName} validUntil:{" "}
-                    {user.validUntil}
+                    {user.firstName} {user.lastName}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
@@ -98,6 +149,29 @@ export default function AccountPage() {
                     {user.email}
                   </p>
                 </div>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
+                  <p className="text-lg text-right dark:text-white">
+                    <span className="font-bold ml-2">:وضعیت اشتراک</span>
+                    <span
+                      className={
+                        subscriptionStatus.includes("منقضی") ||
+                        subscriptionStatus === "بدون اشتراک"
+                          ? "text-red-500"
+                          : "text-green-500"
+                      }
+                    >
+                      {subscriptionStatus}
+                    </span>
+                  </p>
+                </div>
+                {expirationDateTime && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
+                    <p className="text-lg text-right dark:text-white">
+                      <span className="font-bold ml-2">:زمان پایان اشتراک</span>
+                      {expirationDateTime}
+                    </p>
+                  </div>
+                )}
                 <div className="flex justify-center mt-6">
                   <button
                     onClick={logout}
@@ -106,6 +180,15 @@ export default function AccountPage() {
                     خروج از حساب
                   </button>
                 </div>
+                {(subscriptionStatus.includes("منقضی") ||
+                  subscriptionStatus === "بدون اشتراک") && (
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900 rounded text-center">
+                    <p className="text-yellow-800 dark:text-yellow-200">
+                      برای استفاده از دستیار هوش مصنوعی، لطفاً اشتراک خود را
+                      تمدید کنید
+                    </p>
+                  </div>
+                )}
                 <BuyTime onPurchaseComplete={handlePurchaseComplete} />
               </div>
             </div>
