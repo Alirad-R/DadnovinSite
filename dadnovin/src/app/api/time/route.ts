@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { execSync } from "child_process";
 
 export async function GET() {
   return NextResponse.json({
@@ -6,10 +7,7 @@ export async function GET() {
     serverTime: new Date().toString(),
     serverTimeUTC: new Date().toUTCString(),
     envTZ: process.env.TZ,
-    // Additional check using Linux command
-    systemTimezone: require('child_process')
-      .execSync('cat /etc/timezone')
-      .toString()
-      .trim()
+    // Using execSync from ES module import
+    systemTimezone: execSync('cat /etc/timezone').toString().trim()
   });
 } 

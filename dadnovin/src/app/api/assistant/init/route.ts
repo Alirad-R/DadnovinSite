@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrCreateConversation } from "@/app/api/assistant/route"; // adjust the relative import if needed
+import { getOrCreateConversation } from "@/lib/conversation";
 
 export async function POST(req: NextRequest) {
   try {

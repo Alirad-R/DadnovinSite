@@ -81,7 +81,7 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
 
         if (!response.ok) {
           const errorData = await response.json();
-          let errorMessage =
+          const errorMessage =
             errorData.message?.fa ||
             "خطایی رخ داده است. لطفا دوباره تلاش کنید.";
 
@@ -112,7 +112,6 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
         const reader = data.getReader();
         const decoder = new TextDecoder();
         let done = false;
-        let aiResponse = "";
         // Add a placeholder for the AI response.
         setMessages((prev) => [...prev, { type: "ai", content: "" }]);
         while (!done) {
@@ -126,7 +125,6 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
               if (jsonString !== "") {
                 const { data } = JSON.parse(jsonString);
                 if (data !== "[DONE]") {
-                  aiResponse += data;
                   setMessages((prev) => {
                     const lastMsg = prev[prev.length - 1];
                     if (!lastMsg || lastMsg.type !== "ai") return prev;
@@ -155,7 +153,7 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
         setIsLoading(false);
       }
     },
-    [user, conversationId, token]
+    [user, conversationId]
   );
 
   return { messages, isLoading, sendMessage };

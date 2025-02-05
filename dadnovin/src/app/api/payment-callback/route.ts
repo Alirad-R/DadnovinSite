@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { redirect } from "next/navigation";
+// Removed unused imports: NextResponse and redirect
 
 // Handle both GET and POST requests
 async function handleCallback(request: Request) {

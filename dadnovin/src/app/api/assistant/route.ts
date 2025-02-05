@@ -78,10 +78,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
   return { chain, vectorStore };
 }
 
-export async function getOrCreateConversation(
-  conversationId: string,
-  userId: number
-) {
+async function getOrCreateConversation(conversationId: string, userId: number) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set");
@@ -121,6 +118,7 @@ export async function getOrCreateConversation(
 
 export async function POST(req: NextRequest) {
   try {
+    const { conversationId } = await req.json();
     // ***** UPDATED: Use Authorization header with JWT *****
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -197,9 +195,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, conversationId } = await req.json();
+    const data: unknown = await req.json();
 
-    if (!message) {
+    if (!data) {
       return NextResponse.json(
         { error: "Message is required" },
         { status: 400 }
@@ -207,7 +205,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Retrieve the conversation name from the database if it exists (filtered by userId).
-    let name =
+    const name =
       (
         await prisma.conversation.findFirst({
           where: { conversationId, userId },
@@ -219,7 +217,7 @@ export async function POST(req: NextRequest) {
     await prisma.conversation.create({
       data: {
         userId,
-        message,
+        message: data as string,
         sender: "user",
         conversationId,
         name,
@@ -233,7 +231,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Get additional context via vectorStore.
-    const searchResults = await vectorStore.similaritySearch(message, 5);
+    const searchResults = await vectorStore.similaritySearch(data as string, 5);
     const context = searchResults
       .map((doc: { pageContent: string }) => doc.pageContent)
       .join("\n");
@@ -266,7 +264,7 @@ export async function POST(req: NextRequest) {
         // Use the conversation chain to process the new message.
         await chain.call(
           {
-            question: message,
+            question: data as string,
             context: `relevant context: ${context}`,
           },
           {

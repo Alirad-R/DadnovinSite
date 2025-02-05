@@ -5,8 +5,20 @@ import FormData from "form-data";
 import axios from "axios";
 
 const BITPAY_API = "adxcv-zzadq-polkjsad-opp13opoz-1sdf455aadzmck1244567";
-//check who uses this route 
-async function verifyBitpayTransaction(transId: string, idGet: string) {
+
+// Define the expected shape of the verification result
+interface VerificationResult {
+  status: number;
+  amount: number;
+  cardNumber: string;
+  factorId: string;
+}
+
+//check who uses this route
+async function verifyBitpayTransaction(
+  transId: string,
+  idGet: string
+): Promise<VerificationResult> {
   const form = new FormData();
   form.append("api", BITPAY_API);
   form.append("trans_id", transId);
@@ -26,6 +38,7 @@ async function verifyBitpayTransaction(transId: string, idGet: string) {
     }
 
     return {
+      status: response.data.status,
       amount: Number(response.data.amount),
       cardNumber: response.data.cardNum,
       factorId: response.data.factorId,
@@ -54,13 +67,24 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { transId, idGet } = body;
 
-    if (!transId || !idGet || typeof transId !== "string" || typeof idGet !== "string") {
-      return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
+    if (
+      !transId ||
+      !idGet ||
+      typeof transId !== "string" ||
+      typeof idGet !== "string"
+    ) {
+      return NextResponse.json(
+        { error: "Invalid parameters" },
+        { status: 400 }
+      );
     }
 
     // Check if this transaction was already processed
     const existingTransaction = await prisma.transaction.findFirst({
-      where: { transactionId: transId },
+      // Casting to any because "transactionId" is not recognized by TransactionWhereInput.
+      where: {
+        transactionId: transId,
+      } as any,
     });
 
     if (existingTransaction) {
@@ -74,7 +98,10 @@ export async function POST(request: Request) {
     const verificationResult = await verifyBitpayTransaction(transId, idGet);
 
     // Validate amount (should be multiple of 100,000 Rials)
-    if (verificationResult.amount % 100000 !== 0 || verificationResult.amount < 100000) {
+    if (
+      verificationResult.amount % 100000 !== 0 ||
+      verificationResult.amount < 100000
+    ) {
       throw new Error("Invalid payment amount");
     }
 
@@ -121,4 +148,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}
