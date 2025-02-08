@@ -71,21 +71,27 @@ export default function BuyTime({
   return (
     <div className="mt-6 space-y-4 text-right">
       <h2 className="text-2xl font-bold text-center dark:text-white mb-4">
-        خرید زمان
+        buy tokens
       </h2>
-      <div className="flex flex-wrap justify-end gap-4 flex-row-reverse">
-        {options.map((option) => (
-          <button
-            key={option.id}
-            onClick={() => buyTime(option.time)}
-            disabled={isLoading}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 w-full sm:w-auto"
-          >
-            برای {option.time} ساعت - {option.price} تومان{" "}
-            {isLoading && " (در حال پردازش...)"}
-          </button>
-        ))}
-      </div>
+      {options.length > 0 ? (
+        <div className="flex flex-wrap justify-end gap-4 flex-row-reverse">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => buyTime(option.time)}
+              disabled={isLoading}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 w-full sm:w-auto"
+            >
+              برای {option.time} ساعت - {option.price} تومان{" "}
+              {isLoading && " (در حال پردازش...)"}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center text-red-500 dark:text-red-400">
+          Yara you fucking dumbass check the database
+        </div>
+      )}
     </div>
   );
 }

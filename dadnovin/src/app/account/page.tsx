@@ -1,17 +1,14 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import AuthForms from "@/components/AuthForms";
 import BuyTime from "@/components/BuyTime";
-import { format } from "date-fns-jalali";
 
 export default function AccountPage() {
   const { user, logout, setUser } = useAuth();
-  const router = useRouter();
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
   const [expirationDateTime, setExpirationDateTime] = useState<string>("");
 

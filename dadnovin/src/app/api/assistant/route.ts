@@ -197,7 +197,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, conversationId } = await req.json();
+    const data: { message: string; conversationId: string } = await req.json();
+    const message = data.message;
+    const conversationId = data.conversationId;
 
     if (!message) {
       return NextResponse.json(
@@ -207,7 +209,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Retrieve the conversation name from the database if it exists (filtered by userId).
-    let name =
+    const name =
       (
         await prisma.conversation.findFirst({
           where: { conversationId, userId },
@@ -219,7 +221,7 @@ export async function POST(req: NextRequest) {
     await prisma.conversation.create({
       data: {
         userId,
-        message,
+        message: data.message,
         sender: "user",
         conversationId,
         name,
