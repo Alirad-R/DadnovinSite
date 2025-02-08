@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-import { redirect } from "next/navigation";
 
 // Handle both GET and POST requests
 async function handleCallback(request: Request) {
