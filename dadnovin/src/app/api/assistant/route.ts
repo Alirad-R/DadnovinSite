@@ -78,10 +78,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
   return { chain, vectorStore };
 }
 
-export async function getOrCreateConversation(
-  conversationId: string,
-  userId: number
-) {
+async function getOrCreateConversation(conversationId: string, userId: number) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set");
@@ -121,6 +118,7 @@ export async function getOrCreateConversation(
 
 export async function POST(req: NextRequest) {
   try {
+    
     // ***** UPDATED: Use Authorization header with JWT *****
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {

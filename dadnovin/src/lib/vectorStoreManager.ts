@@ -46,7 +46,7 @@ async function loadOrCreateVectorStore(openAIApiKey: string) {
     const docsContent = await fs.readFile(DOCS_FILE, "utf-8");
     const documents = JSON.parse(docsContent);
     return await MemoryVectorStore.fromDocuments(documents, embeddings);
-  } catch (error) {
+  } catch {
     console.log("Creating new vector store...");
     const documents = await loadDocumentsFromDirectory("./data");
 

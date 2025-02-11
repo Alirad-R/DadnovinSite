@@ -37,7 +37,7 @@ export default function DadafarinAssistant() {
           console.error("Failed to initialize conversation:", err)
         );
     }
-  }, [currentConversationId, user]);
+  }, [currentConversationId, user, token]);
 
   // Function to fetch conversation list.
   const fetchConversations = useCallback(async () => {

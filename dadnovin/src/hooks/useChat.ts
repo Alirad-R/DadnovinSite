@@ -81,7 +81,7 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
 
         if (!response.ok) {
           const errorData = await response.json();
-          let errorMessage =
+          const errorMessage =
             errorData.message?.fa ||
             "خطایی رخ داده است. لطفا دوباره تلاش کنید.";
 
@@ -155,7 +155,7 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
         setIsLoading(false);
       }
     },
-    [user, conversationId, token]
+    [user, conversationId]
   );
 
   return { messages, isLoading, sendMessage };

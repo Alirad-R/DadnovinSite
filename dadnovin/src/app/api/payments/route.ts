@@ -13,7 +13,7 @@ async function initiateBitpayPayment(amount: number) {
   form.append("amount", (amount * 10000).toString()); // Convert to Rials
   form.append(
     "redirect",
-    `${process.env.NEXT_PUBLIC_BASE_URL}/account/payment-callback`
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/account/payment-callback`
   );
 
   form.append("name", "Test Payment");
