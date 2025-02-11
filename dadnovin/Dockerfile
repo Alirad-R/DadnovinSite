@@ -1,14 +1,9 @@
-# Use official Node.js image
-FROM node:18
+FROM node:18-alpine AS base
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
+# Install dependencies only when needed
+FROM base AS deps
+# Add build dependencies
+RUN apk add --no-cache libc6-compat python3 make g++ gcc
 WORKDIR /app
 
 # Copy package files
@@ -19,11 +14,13 @@ RUN npm install
 
 # Copy the Prisma schema
 COPY prisma ./prisma
-
-# Generate Prisma client
 RUN npx prisma generate
 
-# Copy the rest of the project files
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 COPY . .
 
 # Set environment variables for development

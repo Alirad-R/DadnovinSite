@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from "react";
 
-export default function BuyTime({
-  onPurchaseComplete,
-}: {
+// Added interface for component props
+interface BuyTimeProps {
   onPurchaseComplete: () => void;
-}) {
+}
+
+export default function BuyTime({ onPurchaseComplete }: BuyTimeProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [options, setOptions] = useState<
     { id: number; time: number; price: string }[]
@@ -34,7 +35,7 @@ export default function BuyTime({
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("/api/payments", {
+      const response: unknown = await fetch("/api/payments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -43,20 +44,28 @@ export default function BuyTime({
         body: JSON.stringify({ hours }),
       });
 
-      if (!response.ok) {
+      if (!response) {
         throw new Error("Payment initiation failed");
       }
 
-      const data = await response.json();
+      const data = await response;
       console.log("Payment initiated:", data);
 
-      if (data.paymentUrl && data.id_get) {
+      if (
+        data &&
+        typeof data === "object" &&
+        "paymentUrl" in data &&
+        "id_get" in data
+      ) {
         // Store the id_get for verification
-        localStorage.setItem("pending_payment_id", data.id_get);
+        localStorage.setItem("pending_payment_id", data.id_get as string);
         localStorage.setItem("pending_payment_time", new Date().toISOString());
 
         // Redirect to Bitpay payment page
-        window.location.href = data.paymentUrl;
+        window.location.href = data.paymentUrl as string;
+
+        // (Optional) Call the onPurchaseComplete callback if needed, e.g.:
+        // onPurchaseComplete();
       } else {
         throw new Error("No payment URL received");
       }

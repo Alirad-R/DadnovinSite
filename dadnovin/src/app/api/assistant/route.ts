@@ -79,6 +79,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
 }
 
 async function getOrCreateConversation(conversationId: string, userId: number) {
+async function getOrCreateConversation(conversationId: string, userId: number) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not set");
@@ -199,7 +200,7 @@ export async function POST(req: NextRequest) {
     const message = data.message;
     const conversationId = data.conversationId;
 
-    if (!message) {
+    if (!data) {
       return NextResponse.json(
         { error: "Message is required" },
         { status: 400 }
@@ -207,6 +208,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Retrieve the conversation name from the database if it exists (filtered by userId).
+    const name =
     const name =
       (
         await prisma.conversation.findFirst({
@@ -233,7 +235,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Get additional context via vectorStore.
-    const searchResults = await vectorStore.similaritySearch(message, 5);
+    const searchResults = await vectorStore.similaritySearch(data as string, 5);
     const context = searchResults
       .map((doc: { pageContent: string }) => doc.pageContent)
       .join("\n");
@@ -266,7 +268,7 @@ export async function POST(req: NextRequest) {
         // Use the conversation chain to process the new message.
         await chain.call(
           {
-            question: message,
+            question: data as string,
             context: `relevant context: ${context}`,
           },
           {

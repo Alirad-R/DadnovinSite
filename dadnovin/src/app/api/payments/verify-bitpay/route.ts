@@ -5,6 +5,12 @@ import FormData from "form-data";
 import axios from "axios";
 
 const BITPAY_API = "adxcv-zzadq-polkjsad-opp13opoz-1sdf455aadzmck1244567";
+interface VerificationResult {
+  status: number;
+  amount: number;
+  cardNumber: string;
+  factorId: string;
+}
 
 export async function POST(request: Request) {
   try {
@@ -45,7 +51,7 @@ export async function POST(request: Request) {
     });
 
     console.log("Bitpay verification response:", response.data);
-    const result = response.data; // Expect: { status, amount, cardNum, factorId }
+    const result: unknown = response.data; // Expect: { status, amount, cardNum, factorId }
 
     // Lookup the transaction record created earlier (pending) by id_get
     const transaction = await prisma.transaction.findFirst({
@@ -67,7 +73,7 @@ export async function POST(request: Request) {
 
     // Compute expected amount in Rials using the value from the transaction.
     const expectedAmount = Number(transaction.amountPaid) * 10000;
-    if (result.status !== 1 || Number(result.amount) !== expectedAmount) {
+    if (result === null || Number(result) !== expectedAmount) {
       throw new Error(
         "Verification failed: amount mismatch or status not approved"
       );
@@ -80,7 +86,7 @@ export async function POST(request: Request) {
         data: {
           paymentStatus: "COMPLETED",
           trans_id: transId, // save callback trans_id
-          externalPaymentId: result.factorId,
+          externalPaymentId: result,
         },
       });
       await tx.user.update({

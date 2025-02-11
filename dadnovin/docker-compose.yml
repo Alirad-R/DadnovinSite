@@ -18,16 +18,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  nextjs:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dadnovin-nextjs
+    container_name: dadnovin-app
     restart: always
     ports:
       - "3000:3000"
-      - "5555:5555"
     environment:
       NODE_ENV: development
       DATABASE_URL: "postgresql://postgres:YMCMBpass@postgres:5432/dadnovin_db"

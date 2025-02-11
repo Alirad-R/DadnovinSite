@@ -112,7 +112,6 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
         const reader = data.getReader();
         const decoder = new TextDecoder();
         let done = false;
-        let aiResponse = "";
         // Add a placeholder for the AI response.
         setMessages((prev) => [...prev, { type: "ai", content: "" }]);
         while (!done) {
@@ -126,7 +125,6 @@ export function useChat({ conversationId, isNewConversation }: UseChatOptions) {
               if (jsonString !== "") {
                 const { data } = JSON.parse(jsonString);
                 if (data !== "[DONE]") {
-                  aiResponse += data;
                   setMessages((prev) => {
                     const lastMsg = prev[prev.length - 1];
                     if (!lastMsg || lastMsg.type !== "ai") return prev;

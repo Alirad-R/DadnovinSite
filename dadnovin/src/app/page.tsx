@@ -1,13 +1,9 @@
 "use client";
 
-import AuthForms from "@/components/AuthForms";
-import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function Home() {
-  const { user, logout } = useAuth();
-
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -28,13 +24,9 @@ export default function Home() {
 
           <div className="relative text-center text-white p-5 z-10 space-y-8">
             <h1 className="text-6xl mb-2">سامانه داد</h1>
-            {user ? (
-              <div className="text-8xl animate-bounce">👍</div>
-            ) : (
-              <p className="text-2xl font-light">
-                برای شروع لطفا وارد حساب کاربری خود شوید یا ثبت نام کنید
-              </p>
-            )}
+            <p className="text-2xl font-light">
+              برای شروع لطفا وارد حساب کاربری خود شوید یا ثبت نام کنید
+            </p>
           </div>
         </section>
       </main>
