@@ -4,11 +4,23 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { v4 as uuidv4 } from "uuid";
-import ConversationList from "@/components/ConversationList";
-import ChatWindow from "@/components/ChatWindow";
+import dynamic from "next/dynamic";
+
+// Dynamically import components that use localStorage with ssr disabled
+const ConversationList = dynamic(
+  () => import("@/components/ConversationList"),
+  {
+    ssr: false,
+  }
+);
+
+const ChatWindow = dynamic(() => import("@/components/ChatWindow"), {
+  ssr: false,
+});
 
 export default function DadafarinAssistant() {
   const { user } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
@@ -17,10 +29,16 @@ export default function DadafarinAssistant() {
     string | null
   >(null);
   const [conversationList, setConversationList] = useState<any[]>([]);
-  const token = localStorage.getItem("token");
+
+  // Get token on client side
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    setToken(storedToken);
+  }, []);
+
   // When a conversation is set, initialize its chain once.
   useEffect(() => {
-    if (currentConversationId && user) {
+    if (currentConversationId && user && token) {
       fetch("/api/assistant/init", {
         method: "POST",
         headers: {
@@ -41,7 +59,7 @@ export default function DadafarinAssistant() {
 
   // Function to fetch conversation list.
   const fetchConversations = useCallback(async () => {
-    if (user) {
+    if (user && token) {
       try {
         const res = await fetch("/api/conversations", {
           headers: {
@@ -70,7 +88,7 @@ export default function DadafarinAssistant() {
 
   // Delete a conversation.
   const handleDeleteConversation = async (conversationId: string) => {
-    if (!user) return;
+    if (!user || !token) return;
     try {
       const response = await fetch(
         `/api/conversations?conversationId=${conversationId}`,
