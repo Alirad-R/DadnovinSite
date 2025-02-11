@@ -32,7 +32,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
   const vectorStore = await loadOrCreateVectorStore(apiKey);
 
   // Pull the base prompt from LangChain Hub.
-  const basePrompt = (await hub.pull("loulou/lil_loulou")) as ChatPromptTemplate;
+  const basePrompt = (await hub.pull("loulou/lil_dadnovin")) as ChatPromptTemplate;
 
   // Build a prompt that accepts "history" and "context".
   const promptWithHistory = ChatPromptTemplate.fromMessages([
