@@ -13,7 +13,7 @@ export default function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); // Clear any previous errors
+    setError("");
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -23,11 +23,11 @@ export default function LoginForm() {
       });
 
       const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.error || "خطا در ورود به حساب");
       }
 
+      // Store the token
       localStorage.setItem("token", data.token);
 
       // Fetch user data
@@ -38,7 +38,7 @@ export default function LoginForm() {
       });
 
       if (!userRes.ok) {
-        throw new Error("Failed to fetch user data");
+        throw new Error("خطا در دریافت اطلاعات کاربر");
       }
 
       const userData = await userRes.json();
@@ -50,46 +50,55 @@ export default function LoginForm() {
       router.push("/");
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(err.message || "An error occurred during login");
+      setError(err.message || "خطایی در ورود به حساب رخ داده است");
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8 p-6 rounded-lg shadow-lg auth-card">
-      <h2 className="text-2xl font-bold mb-6">Login</h2>
-      {error && <div className="auth-error mb-4">{error}</div>}
+    <div
+      dir="rtl"
+      className="max-w-md w-full mx-auto mt-8 p-6 rounded-lg shadow-lg auth-card text-right"
+    >
+      <h2 className="text-2xl font-bold mb-6">ورود به حساب</h2>
+
+      {error && <div className="auth-error mb-4 text-red-500">{error}</div>}
+
       <form onSubmit={handleSubmit}>
+        {/* ایمیل */}
         <div className="mb-4">
           <label className="block auth-label mb-2" htmlFor="email">
-            Email
+            ایمیل
           </label>
           <input
             type="email"
             id="email"
+            className="w-full p-2 rounded auth-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-2 rounded auth-input"
             required
           />
         </div>
+
+        {/* رمز عبور */}
         <div className="mb-4">
           <label className="block auth-label mb-2" htmlFor="password">
-            Password
+            رمز عبور
           </label>
           <input
             type="password"
             id="password"
+            className="w-full p-2 rounded auth-input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-2 rounded auth-input"
             required
           />
         </div>
+
         <button
           type="submit"
           className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
-          Login
+          ورود
         </button>
       </form>
     </div>

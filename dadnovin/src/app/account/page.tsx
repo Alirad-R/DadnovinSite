@@ -77,15 +77,15 @@ export default function AccountPage() {
     if (user?.validUntil) {
       const validUntil = new Date(user.validUntil);
 
-      // Get current time in Iran
+      // زمان فعلی ایران
       const iranTime = new Date().toLocaleString("en-US", {
         timeZone: "Asia/Tehran",
       });
       const currentIranTime = new Date(iranTime);
 
-      // Format the date using toLocaleString with Tehran timezone
+      // فرمت تاریخ با Europe/London برای جلوگیری از بهم‌ریختگی زمان
       const formattedDateTime = validUntil.toLocaleString("en-US", {
-        timeZone: "Europe/London", // ughhhhh it's necessary in order to get it to display the correct time. we're storing the time in Db in Tehran time. so in order for it to not fuck up, we have to pretend like tehran time is London time.
+        timeZone: "Europe/London",
         hour12: false,
         year: "numeric",
         month: "2-digit",
@@ -113,7 +113,6 @@ export default function AccountPage() {
           statusText += `${remainingHours} ساعت`;
         }
         statusText += " باقی‌مانده";
-
         setSubscriptionStatus(statusText);
       }
     } else {
@@ -122,33 +121,46 @@ export default function AccountPage() {
     }
   }, [user?.validUntil]);
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
+  // وضعیت بارگذاری کاربر
+  if (user === undefined) {
+    return (
+      <div dir="rtl" className="text-right px-4 py-8">
+        در حال بارگذاری...
+      </div>
+    );
+  }
 
-      <main className="flex-grow flex items-center justify-center p-8">
+  return (
+    // کل صفحه: راست به چپ
+    <div className="flex flex-col min-h-screen" dir="rtl">
+      {/* Navbar با چیدمان چپ به راست */}
+      <div dir="ltr">
+        <Navbar />
+      </div>
+
+      <main className="flex-grow flex flex-col items-center justify-center px-4 py-4 sm:px-8 sm:py-8 text-right">
         <div className="w-full max-w-2xl">
           {user ? (
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
-              <h1 className="text-4xl font-bold mb-8 text-center dark:text-white">
+            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-lg">
+              <h1 className="text-2xl sm:text-4xl font-bold mb-8 dark:text-white">
                 حساب کاربری
               </h1>
-              <div className="space-y-4">
+              <div className="space-y-4 text-base sm:text-lg">
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                  <p className="text-lg text-right dark:text-white">
-                    <span className="font-bold ml-2">:نام</span>
+                  <p className="dark:text-white">
+                    <span className="font-bold ml-2">نام:</span>
                     {user.firstName} {user.lastName}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                  <p className="text-lg text-right dark:text-white">
-                    <span className="font-bold ml-2">:ایمیل</span>
+                  <p className="dark:text-white">
+                    <span className="font-bold ml-2">ایمیل:</span>
                     {user.email}
                   </p>
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                  <p className="text-lg text-right dark:text-white">
-                    <span className="font-bold ml-2">:وضعیت اشتراک</span>
+                  <p className="dark:text-white">
+                    <span className="font-bold ml-2">وضعیت اشتراک:</span>
                     <span
                       className={
                         subscriptionStatus.includes("منقضی") ||
@@ -163,8 +175,8 @@ export default function AccountPage() {
                 </div>
                 {expirationDateTime && (
                   <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                    <p className="text-lg text-right dark:text-white">
-                      <span className="font-bold ml-2">:زمان پایان اشتراک</span>
+                    <p className="dark:text-white">
+                      <span className="font-bold ml-2">زمان پایان اشتراک:</span>
                       {expirationDateTime}
                     </p>
                   </div>
@@ -181,8 +193,7 @@ export default function AccountPage() {
                   subscriptionStatus === "بدون اشتراک") && (
                   <div className="p-4 bg-yellow-50 dark:bg-yellow-900 rounded text-center">
                     <p className="text-yellow-800 dark:text-yellow-200">
-                      برای استفاده از دستیار هوش مصنوعی، لطفاً اشتراک خود را
-                      تمدید کنید
+                      برای استفاده از دستیار هوش مصنوعی، لطفاً اشتراک خود را تمدید کنید
                     </p>
                   </div>
                 )}
@@ -190,8 +201,8 @@ export default function AccountPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
-              <h1 className="text-4xl font-bold mb-8 text-center dark:text-white">
+            <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-lg">
+              <h1 className="text-2xl sm:text-4xl font-bold mb-8 dark:text-white">
                 ورود به حساب
               </h1>
               <AuthForms />

@@ -5,8 +5,9 @@ import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
-// Dynamically import components that use localStorage with ssr disabled
+// Dynamically import components that use localStorage with SSR disabled
 const ConversationList = dynamic(
   () => import("@/components/ConversationList"),
   {
@@ -29,6 +30,8 @@ export default function DadafarinAssistant() {
     string | null
   >(null);
   const [conversationList, setConversationList] = useState<any[]>([]);
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [showChat, setShowChat] = useState(false);
 
   // Get token on client side
   useEffect(() => {
@@ -36,7 +39,26 @@ export default function DadafarinAssistant() {
     setToken(storedToken);
   }, []);
 
-  // When a conversation is set, initialize its chain once.
+  // Fetch conversation list
+  const fetchConversations = useCallback(async () => {
+    if (user && token) {
+      try {
+        const res = await fetch("/api/conversations", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setConversationList(data);
+      } catch (error) {
+        console.error("Error fetching conversation list:", error);
+      }
+    }
+  }, [user, token]);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  // Initialize conversation once we have conversationId + user + token
   useEffect(() => {
     if (currentConversationId && user && token) {
       fetch("/api/assistant/init", {
@@ -50,43 +72,26 @@ export default function DadafarinAssistant() {
         .then((res) => res.json())
         .then((data) => {
           console.log("Conversation initialized:", data);
+          // Immediately refresh list after creating a new conversation
+          fetchConversations();
         })
         .catch((err) =>
           console.error("Failed to initialize conversation:", err)
         );
     }
-  }, [currentConversationId, user, token]);
+  }, [currentConversationId, user, token, fetchConversations]);
 
-  // Function to fetch conversation list.
-  const fetchConversations = useCallback(async () => {
-    if (user && token) {
-      try {
-        const res = await fetch("/api/conversations", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await res.json();
-        setConversationList(data);
-      } catch (error) {
-        console.error("Error fetching conversation list:", error);
-      }
-    }
-  }, [user, token]);
-
-  // Load conversation list on mount.
-  useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
-
-  // When selecting a conversation, update state.
+  // Select a conversation
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversation(conversationId);
     setCurrentConversationId(conversationId);
     setIsNewConversation(false);
+    if (isMobile) {
+      setShowChat(true);
+    }
   };
 
-  // Delete a conversation.
+  // Delete a conversation
   const handleDeleteConversation = async (conversationId: string) => {
     if (!user || !token) return;
     try {
@@ -111,21 +116,38 @@ export default function DadafarinAssistant() {
     }
   };
 
-  // Create a new conversation.
-  const handleNewConversation = () => {
-    const newId = uuidv4();
-    setCurrentConversationId(newId);
-    setIsNewConversation(true);
-    setSelectedConversation(null);
+  // Mobile back to list
+  const handleBackToList = () => {
+    setShowChat(false);
   };
 
-  // If user is not loaded yet, show loading state
+  // New conversation
+  const handleNewConversation = () => {
+    // First clear existing conversation state
+    setSelectedConversation(null);
+    setCurrentConversationId(null);
+    setIsNewConversation(false);
+
+    // Small delay to ensure state is cleared before setting new conversation
+    setTimeout(() => {
+      const newId = uuidv4();
+      setCurrentConversationId(newId);
+      setIsNewConversation(true);
+      if (isMobile) {
+        setShowChat(true);
+      }
+    }, 0);
+  };
+
+  // If user data is still loading
   if (!user) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div
+      className={`flex flex-col h-screen ${isMobile ? "overflow-hidden" : ""}`}
+    >
       <Navbar />
       <h1
         className="text-3xl font-bold text-center py-6"
@@ -133,22 +155,36 @@ export default function DadafarinAssistant() {
       >
         دستیار هوش مصنوعی
       </h1>
+
       <div className="flex flex-1 overflow-hidden">
-        <ConversationList
-          conversationList={conversationList}
-          selectedConversation={selectedConversation}
-          onSelectConversation={handleSelectConversation}
-          onDeleteConversation={handleDeleteConversation}
-          onNewConversation={handleNewConversation}
-        />
-        <div className="flex-1 flex flex-col">
-          <ChatWindow
-            conversationId={currentConversationId}
-            isNewConversation={isNewConversation}
-            onAutoNewConversation={handleNewConversation}
-            refreshConversationList={fetchConversations}
+        {(!isMobile || (isMobile && !showChat)) && (
+          <ConversationList
+            conversationList={conversationList}
+            selectedConversation={selectedConversation}
+            onSelectConversation={handleSelectConversation}
+            onDeleteConversation={handleDeleteConversation}
+            onNewConversation={handleNewConversation}
+            isMobile={isMobile}
           />
-        </div>
+        )}
+
+        {(!isMobile || (isMobile && showChat)) && (
+          <div className="flex-1 flex flex-col">
+            <ChatWindow
+              conversationId={currentConversationId}
+              isNewConversation={isNewConversation}
+              onAutoNewConversation={handleNewConversation}
+              refreshConversationList={fetchConversations}
+              onBack={handleBackToList}
+              isMobile={isMobile}
+              selectedConversationName={
+                conversationList.find(
+                  (conv) => conv.conversationId === selectedConversation
+                )?.name
+              }
+            />
+          </div>
+        )}
       </div>
     </div>
   );

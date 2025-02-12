@@ -15,8 +15,10 @@ export default function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
     try {
-      // 1. Sign up
+      // 1. Send signup request
       const signupRes = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -24,12 +26,10 @@ export default function SignupForm() {
       });
 
       const signupData = await signupRes.json();
-
       if (!signupRes.ok) {
-        throw new Error(signupData.error || "Signup failed");
+        throw new Error(signupData.error || "خطا در ثبت‌نام");
       }
-
-      console.log("Signup successful, attempting login");
+      console.log("ثبت‌نام موفق بود. در حال ورود به حساب...");
 
       // 2. Login
       const loginRes = await fetch("/api/auth/login", {
@@ -42,12 +42,11 @@ export default function SignupForm() {
       });
 
       const loginData = await loginRes.json();
-
       if (!loginRes.ok) {
-        throw new Error(loginData.error || "Login failed after signup");
+        throw new Error(loginData.error || "خطا در ورود به حساب پس از ثبت‌نام");
       }
+      console.log("ورود موفق. تنظیم توکن...");
 
-      console.log("Login successful, setting token");
       localStorage.setItem("token", loginData.token);
 
       // 3. Fetch user data
@@ -58,12 +57,11 @@ export default function SignupForm() {
       });
 
       const userData = await userRes.json();
-
       if (!userRes.ok) {
-        throw new Error(userData.error || "Failed to fetch user data");
+        throw new Error(userData.error || "خطا در دریافت اطلاعات کاربر");
       }
 
-      console.log("User data fetched successfully:", userData.user);
+      console.log("دریافت اطلاعات کاربر موفقیت‌آمیز:", userData.user);
       setUser(userData.user);
     } catch (err: any) {
       console.error("Signup process error:", err);
@@ -79,71 +77,84 @@ export default function SignupForm() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8 p-6 rounded-lg shadow-lg auth-card">
-      <h2 className="text-2xl font-bold mb-6">Sign Up</h2>
-      {error && <div className="auth-error mb-4">{error}</div>}
+    <div
+      dir="rtl"
+      className="max-w-md w-full mx-auto mt-8 p-6 rounded-lg shadow-lg auth-card text-right"
+    >
+      <h2 className="text-2xl font-bold mb-6">ثبت‌نام</h2>
+
+      {error && <div className="auth-error mb-4 text-red-500">{error}</div>}
+
       <form onSubmit={handleSubmit}>
+        {/* نام */}
         <div className="mb-4">
           <label className="block auth-label mb-2" htmlFor="firstName">
-            First Name
+            نام
           </label>
           <input
             type="text"
             id="firstName"
             name="firstName"
+            className="w-full p-2 rounded auth-input"
             value={formData.firstName}
             onChange={handleChange}
-            className="w-full p-2 rounded auth-input"
             required
           />
         </div>
+
+        {/* نام خانوادگی */}
         <div className="mb-4">
           <label className="block auth-label mb-2" htmlFor="lastName">
-            Last Name
+            نام خانوادگی
           </label>
           <input
             type="text"
             id="lastName"
             name="lastName"
+            className="w-full p-2 rounded auth-input"
             value={formData.lastName}
             onChange={handleChange}
-            className="w-full p-2 rounded auth-input"
             required
           />
         </div>
+
+        {/* ایمیل */}
         <div className="mb-4">
           <label className="block auth-label mb-2" htmlFor="email">
-            Email
+            ایمیل
           </label>
           <input
             type="email"
             id="email"
             name="email"
+            className="w-full p-2 rounded auth-input"
             value={formData.email}
             onChange={handleChange}
-            className="w-full p-2 rounded auth-input"
             required
           />
         </div>
+
+        {/* رمز عبور */}
         <div className="mb-4">
           <label className="block auth-label mb-2" htmlFor="password">
-            Password
+            رمز عبور
           </label>
           <input
             type="password"
             id="password"
             name="password"
+            className="w-full p-2 rounded auth-input"
             value={formData.password}
             onChange={handleChange}
-            className="w-full p-2 rounded auth-input"
             required
           />
         </div>
+
         <button
           type="submit"
           className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
-          Sign Up
+          ثبت‌نام
         </button>
       </form>
     </div>
