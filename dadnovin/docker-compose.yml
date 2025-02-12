@@ -19,33 +19,33 @@ services:
       timeout: 5s
       retries: 5
 
-  nextjs:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dadnovin-nextjs
+    container_name: dadnovin-app
     restart: always
     ports:
       - "3000:3000"
-      - "5555:5555"
     environment:
-      NODE_ENV: development
-      DATABASE_URL: "postgresql://postgres:YMCMBpass@postgres:5432/dadnovin_db"
-      POSTGRES_HOST: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: YMCMBpass
-      POSTGRES_DB: dadnovin_db
-      NEXTAUTH_SECRET: "supersecret"
-      NEXTAUTH_URL: "http://localhost:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+      DB_HOST: "localhost"
+      # Any other production-specific variables can go here
     depends_on:
-      postgres:
-        condition: service_healthy
-    command: >
-      sh -c "npx prisma db push --accept-data-loss && npm run dev"
+      - postgres
+    # Remove development volume mounts so the container only uses the built contents
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
