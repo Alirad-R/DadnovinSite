@@ -4,7 +4,10 @@ import prisma  from "@/lib/prisma";
 import FormData from "form-data";
 import axios from "axios";
 
-const BITPAY_API = "adxcv-zzadq-polkjsad-opp13opoz-1sdf455aadzmck1244567";
+const BITPAY_API = process.env.BITPAY_API;
+if (!BITPAY_API) {
+  throw new Error("BITPAY_API is not set");
+}
 
 export async function POST(request: Request) {
   try {
@@ -30,7 +33,7 @@ export async function POST(request: Request) {
 
     // Create form data for Bitpay verification
     const form = new FormData();
-    form.append("api", BITPAY_API);
+    form.append("api", String(BITPAY_API));
     form.append("trans_id", transId);
     form.append("id_get", idGet);
     form.append("json", "1");
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
     // Call Bitpay verification endpoint
     const response = await axios({
       method: "post",
-      url: "https://bitpay.ir/payment-test/gateway-result-second",
+      url: "https://bitpay.ir/payment/gateway-result-second",
       data: form,
       headers: { ...form.getHeaders() },
     });

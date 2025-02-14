@@ -4,12 +4,15 @@ import prisma from "@/lib/prisma";
 import FormData from "form-data";
 import axios from "axios";
 
-const BITPAY_API = "adxcv-zzadq-polkjsad-opp13opoz-1sdf455aadzmck1244567"; // Test API key
-const BITPAY_URL = "https://bitpay.ir/payment-test/gateway-send"; // Test endpoint
+const BITPAY_API = process.env.BITPAY_API;
+if (!BITPAY_API) {
+  throw new Error("BITPAY_API is not set");
+}
+const BITPAY_URL = "https://bitpay.ir/payment/gateway";
 
 async function initiateBitpayPayment(amount: number) {
   const form = new FormData();
-  form.append("api", BITPAY_API);
+  form.append("api", String(BITPAY_API));
   form.append("amount", (amount * 10000).toString()); // Convert to Rials
   form.append(
     "redirect",
@@ -32,7 +35,7 @@ async function initiateBitpayPayment(amount: number) {
     console.log("Bitpay response:", response.data);
 
     if (typeof response.data === "number" && response.data > 0) {
-      const paymentUrl = `https://bitpay.ir/payment-test/gateway-${response.data}-get`;
+      const paymentUrl = `https://bitpay.ir/payment/gateway-${response.data}-get`;
       console.log("Generated payment URL:", paymentUrl);
       return {
         paymentUrl,
