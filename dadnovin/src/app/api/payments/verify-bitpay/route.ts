@@ -4,9 +4,9 @@ import prisma  from "@/lib/prisma";
 import FormData from "form-data";
 import axios from "axios";
 
-const BITPAY_API = process.env.BITPAY_API;
+const BITPAY_API = process.env.BITPAY_API_KEY;
 if (!BITPAY_API) {
-  throw new Error("BITPAY_API is not set");
+  throw new Error("BITPAY_API_KEY is not set");
 }
 
 export async function POST(request: Request) {

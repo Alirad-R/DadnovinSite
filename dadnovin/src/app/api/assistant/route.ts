@@ -39,7 +39,7 @@ async function createNewConversationChain(existingHistory: any[] = []) {
 
   // Pull the base prompt from LangChain Hub.
   const basePrompt = (await hub.pull(
-    "loulou/lil_loulou"
+    "loulou/lil_dadnovin"
   )) as ChatPromptTemplate;
 
   // Build a prompt that accepts "history" and "context".
@@ -118,7 +118,6 @@ async function getOrCreateConversation(conversationId: string, userId: number) {
 
 export async function POST(req: NextRequest) {
   try {
-    
     // ***** UPDATED: Use Authorization header with JWT *****
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {

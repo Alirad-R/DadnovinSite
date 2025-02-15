@@ -4,11 +4,12 @@ import prisma from "@/lib/prisma";
 import FormData from "form-data";
 import axios from "axios";
 
-const BITPAY_API = process.env.BITPAY_API;
+const BITPAY_API = process.env.BITPAY_API_KEY;
 if (!BITPAY_API) {
-  throw new Error("BITPAY_API is not set");
+  throw new Error("BITPAY_API_KEY is not set");
 }
-const BITPAY_URL = "https://bitpay.ir/payment/gateway";
+
+const BITPAY_URL = "https://bitpay.ir/payment/gateway-send"; // Test endpoint
 
 async function initiateBitpayPayment(amount: number) {
   const form = new FormData();
