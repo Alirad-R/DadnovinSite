@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/utils/auth";
-import prisma  from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import FormData from "form-data";
 import axios from "axios";
 
-const BITPAY_API = process.env.BITPAY_API_KEY;
-if (!BITPAY_API) {
-  throw new Error("BITPAY_API_KEY is not set");
-}
+const BITPAY_API = "adxcv-zzadq-polkjsad-opp13opoz-1sdf455aadzmck1244567";
+
 
 export async function POST(request: Request) {
   try {

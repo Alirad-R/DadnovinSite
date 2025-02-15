@@ -158,29 +158,7 @@ export default function AccountPage() {
                     {user.email}
                   </p>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                  <p className="dark:text-white">
-                    <span className="font-bold ml-2">وضعیت اشتراک:</span>
-                    <span
-                      className={
-                        subscriptionStatus.includes("منقضی") ||
-                        subscriptionStatus === "بدون اشتراک"
-                          ? "text-red-500"
-                          : "text-green-500"
-                      }
-                    >
-                      {subscriptionStatus}
-                    </span>
-                  </p>
-                </div>
-                {expirationDateTime && (
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                    <p className="dark:text-white">
-                      <span className="font-bold ml-2">زمان پایان اشتراک:</span>
-                      {expirationDateTime}
-                    </p>
-                  </div>
-                )}
+
                 <div className="flex justify-center mt-6">
                   <button
                     onClick={logout}
@@ -189,15 +167,6 @@ export default function AccountPage() {
                     خروج از حساب
                   </button>
                 </div>
-                {(subscriptionStatus.includes("منقضی") ||
-                  subscriptionStatus === "بدون اشتراک") && (
-                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900 rounded text-center">
-                    <p className="text-yellow-800 dark:text-yellow-200">
-                      برای استفاده از دستیار هوش مصنوعی، لطفاً اشتراک خود را تمدید کنید
-                    </p>
-                  </div>
-                )}
-                <BuyTime onPurchaseComplete={handlePurchaseComplete} />
               </div>
             </div>
           ) : (
