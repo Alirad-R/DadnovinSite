@@ -13,39 +13,33 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
-  app:
+  nextjs:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: dadnovin-app
+    container_name: dadnovin-nextjs
     restart: always
     ports:
       - "3000:3000"
+      - "5555:5555"
     environment:
-      DB_HOST: "localhost"
-      # Any other production-specific variables can go here
+      # Update the URL to use PostgreSQL format
+      DATABASE_URL: "postgresql://postgres:YMCMBpass@postgres:5432/dadnovin_db"
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: YMCMBpass
+      POSTGRES_DB: dadnovin_db
+
+      NEXTAUTH_SECRET: "supersecret"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - postgres
-    # Remove development volume mounts so the container only uses the built contents
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    command: >
+      sh -c "npx prisma migrate deploy && npm run dev"
 
 volumes:
   postgres_data:

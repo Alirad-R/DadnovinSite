@@ -23,10 +23,11 @@ export default function Home() {
             <div
               className="absolute inset-0 bg-black/50"
               style={{
-                backgroundImage: "url('/assets/background3.webp')",
-                backgroundPosition: "center",
+                backgroundImage: "url('/assets/newBG.jpeg')",
+                backgroundPosition: "top center",
                 backgroundSize: "cover",
                 backgroundRepeat: "no-repeat",
+                height: "85vh",
               }}
             />
           </div>
@@ -37,11 +38,13 @@ export default function Home() {
             style={{ textShadow: "2px 2px 4px rgba(0, 0, 0, 0.8)" }}
           >
             {/* Responsive heading sizes for mobile vs. desktop */}
-            <h1 className="text-4xl sm:text-6xl mb-2 font-bold">سامانه داد</h1>
+            <h1 className="text-4xl sm:text-6xl mb-2 font-bold">حقوق یار دادآفرین</h1>
 
             {user ? (
               // If logged in, show a fun icon or a greeting
-              <div className="text-6xl sm:text-8xl animate-bounce">👍</div>
+              <div className="text-6xl sm:text-8xl animate-bounce">
+                خوش آمدید
+              </div>
             ) : (
               // If not logged in, invite user to log in / sign up
               <div className="space-y-4">

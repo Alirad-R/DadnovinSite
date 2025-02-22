@@ -40,6 +40,7 @@ async function saveVectorStore(documents: any[]) {
 
 async function loadOrCreateVectorStore(openAIApiKey: string) {
   const embeddings = new OpenAIEmbeddings({ openAIApiKey });
+  
 
   try {
     console.log("Loading existing vector store...");
